@@ -1,17 +1,14 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
-  BookOpen,
+  ArrowRight,
   Clock,
   FileText,
-  GraduationCap,
-  LogIn,
   LogOut,
-  Play,
+  Moon,
   RefreshCw,
-  ShieldCheck,
-  Sparkles,
+  Shield,
+  Sun,
   Trophy,
-  User,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import type { Exam } from '../types/exam';
@@ -24,6 +21,8 @@ interface HomePageProps {
   fromFallback: boolean;
   user: SupabaseUser | null;
   studentName: string;
+  isDark: boolean;
+  onToggleDark: () => void;
   onChangeStudentName: (name: string) => void;
   onStartExam: (exam: Exam) => void;
   onRefresh: () => void;
@@ -38,6 +37,8 @@ export const HomePage: React.FC<HomePageProps> = ({
   fromFallback,
   user,
   studentName,
+  isDark,
+  onToggleDark,
   onChangeStudentName,
   onStartExam,
   onRefresh,
@@ -45,7 +46,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   onSignOut,
   leaderboardRefreshKey,
 }) => {
-  const [nameError, setNameError] = useState('');
   const [leaderboardExam, setLeaderboardExam] = useState<Exam | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
@@ -57,9 +57,9 @@ export const HomePage: React.FC<HomePageProps> = ({
     user?.email?.split('@')[0] ||
     '';
 
-  const handleStart = (exam: Exam) => {
-    if (user || studentName.trim()) {
-      setNameError('');
+  const handleEnterExam = (exam: Exam) => {
+    if (user) {
+      // Đã đăng nhập -> tự lấy tên & avatar vào thi ngay trong 1 click
       onStartExam(exam);
       return;
     }
@@ -68,56 +68,57 @@ export const HomePage: React.FC<HomePageProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-700 to-rose-600 text-white flex items-center justify-center shadow-sm shrink-0">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-lg font-extrabold tracking-tight text-slate-900 truncate">
-                Bốp Bốp <span className="text-rose-700">TSA</span>
-              </h1>
-              <p className="text-xs text-slate-500 hidden sm:block">
-                Hệ thống luyện thi Đánh giá tư duy HUST
-              </p>
-            </div>
+    <div className="min-h-screen flex flex-col bg-[#FAFAFA] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100">
+      {/* Frosted-Glass Minimalist Header */}
+      <header className="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-zinc-950/80 border-b border-slate-200/80 dark:border-zinc-800">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-red-700 shrink-0" />
+            <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-zinc-100 truncate">
+              Bốp Bốp <span className="text-red-700 dark:text-red-500">TSA</span>
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
-              onClick={onRefresh}
-              disabled={loading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors"
-              title="Làm mới danh sách đề"
+              onClick={onToggleDark}
+              className="rounded-lg p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              title={isDark ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối'}
+              aria-label="Chuyển giao diện Sáng/Tối"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden md:inline">Làm mới</span>
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+
+            <button
+              onClick={onOpenAdmin}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <Shield className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline">Quản trị</span>
             </button>
 
             {user ? (
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 pl-2 pr-2.5 py-1">
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-1.5 pr-2 py-1">
                 {userAvatar ? (
                   <img
                     src={userAvatar}
                     alt={userDisplayName}
-                    className="w-7 h-7 rounded-full object-cover border border-slate-200"
+                    className="w-6 h-6 rounded-full object-cover border border-slate-200 dark:border-zinc-700"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-rose-700 text-white text-xs font-bold flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-red-700 text-white text-[11px] font-bold flex items-center justify-center">
                     {(userDisplayName[0] || 'U').toUpperCase()}
                   </div>
                 )}
-                <span className="text-xs font-semibold text-slate-800 max-w-[120px] truncate hidden sm:inline">
+                <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 max-w-[110px] truncate hidden sm:inline">
                   {userDisplayName}
                 </span>
                 <button
                   onClick={onSignOut}
-                  className="rounded-lg p-1 text-slate-500 hover:bg-slate-200 hover:text-rose-700 transition-colors"
+                  className="rounded-md p-1 text-slate-400 hover:text-red-700 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
                   title="Đăng xuất"
+                  aria-label="Đăng xuất"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -128,188 +129,139 @@ export const HomePage: React.FC<HomePageProps> = ({
                   setPendingExam(null);
                   setAuthModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
               >
-                <LogIn className="w-3.5 h-3.5" />
-                Đăng nhập
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"
+                  />
+                </svg>
+                <span className="hidden sm:inline">Đăng nhập bằng Google</span>
+                <span className="sm:hidden">Đăng nhập</span>
               </button>
             )}
-
-            <button
-              onClick={onOpenAdmin}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Quản trị</span>
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Hero + Candidate Name / Auth Card */}
-      <section className="bg-gradient-to-br from-red-800 via-rose-700 to-rose-600 text-white py-10 sm:py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-rose-100 mb-4">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              Chuẩn cấu trúc Đánh giá tư duy — Đại học Bách khoa Hà Nội
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-              Phòng thi mô phỏng TSA HUST
-            </h2>
-            <p className="mt-2.5 text-sm sm:text-base text-rose-100 leading-relaxed">
-              Giao diện thông minh (Toán toàn màn hình, Đọc hiểu & Khoa học chia đôi ngữ
-              liệu), công thức KaTeX sắc nét, đủ 4 dạng câu hỏi TSA, máy tính tích hợp và
+      {/* Minimalist Intro */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-14">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-8 border-b border-slate-200/80 dark:border-zinc-800">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-red-700 dark:text-red-500 mb-2">
+              Đánh giá tư duy HUST
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
+              Kho đề thi mô phỏng TSA
+            </h1>
+            <p className="mt-1.5 text-sm text-slate-500 dark:text-zinc-400 max-w-xl leading-relaxed">
+              Không gian luyện thi tối giản, tập trung tối đa với công thức KaTeX sắc nét và
               bảng xếp hạng trực tuyến.
             </p>
           </div>
 
-          {/* Candidate Card */}
-          <div className="mt-7 max-w-xl rounded-2xl bg-white p-4 sm:p-5 text-slate-900 shadow-xl">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <label
-                htmlFor="student-name"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-500"
-              >
-                {user
-                  ? 'Thí sinh đã đăng nhập'
-                  : 'Thi nhanh với tư cách Khách (hoặc đăng nhập Google)'}
-              </label>
-              {!user && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPendingExam(null);
-                    setAuthModalOpen(true);
-                  }}
-                  className="text-xs font-bold text-rose-700 hover:underline"
-                >
-                  Đăng nhập Google / Email →
-                </button>
-              )}
-            </div>
-            <div className="relative">
-              <User className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                id="student-name"
-                type="text"
-                value={studentName}
-                onChange={(e) => {
-                  onChangeStudentName(e.target.value);
-                  if (nameError) setNameError('');
-                }}
-                placeholder="Nhập Họ và tên của bạn (VD: Nguyễn Văn An)..."
-                className="w-full rounded-xl border border-slate-300 bg-slate-50 pl-11 pr-4 py-3 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-rose-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-600/20"
-              />
-            </div>
-            {nameError && (
-              <p className="mt-2 text-xs font-medium text-rose-600">{nameError}</p>
+          <div className="flex items-center gap-2 shrink-0">
+            {fromFallback && (
+              <span className="rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-xs text-slate-500 dark:text-zinc-400">
+                Đề mẫu mặc định
+              </span>
             )}
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </button>
           </div>
         </div>
-      </section>
 
-      {/* Exam List */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-rose-700" />
-              Kho đề thi TSA
-            </h3>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Chọn một đề thi bên dưới để bắt đầu làm bài hoặc xem bảng xếp hạng.
-            </p>
-          </div>
-
-          {fromFallback && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-200 px-3 py-1 text-xs font-medium text-amber-800">
-              Đang hiển thị đề mẫu mặc định (bảng exams trên Supabase đang trống)
-            </span>
-          )}
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="h-56 rounded-2xl bg-white border border-slate-200 p-5 animate-pulse flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="h-4 w-24 bg-slate-200 rounded" />
-                  <div className="h-6 w-3/4 bg-slate-200 rounded" />
-                  <div className="h-4 w-full bg-slate-100 rounded" />
+        {/* Clean Exam Cards Grid */}
+        <section className="mt-8">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((n) => (
+                <div
+                  key={n}
+                  className="h-44 rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 animate-pulse flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="h-4 w-24 bg-slate-100 dark:bg-zinc-800 rounded" />
+                    <div className="h-5 w-3/4 bg-slate-100 dark:bg-zinc-800 rounded" />
+                  </div>
+                  <div className="h-9 w-full bg-slate-100 dark:bg-zinc-800 rounded-lg" />
                 </div>
-                <div className="h-10 w-full bg-slate-200 rounded-xl" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {exams.map((exam) => (
-              <article
-                key={exam.id}
-                className="group rounded-2xl bg-white border border-slate-200 p-5 shadow-xs hover:shadow-md hover:border-rose-200 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
-                      {exam.section || 'Tổng hợp TSA'}
-                    </span>
-                    {exam.is_sample && (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                        Đề mẫu
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {exams.map((exam) => (
+                <article
+                  key={exam.id}
+                  className="group rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between gap-5"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span className="inline-flex items-center rounded-md border border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/70 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:text-zinc-300">
+                        {exam.section || 'Tổng hợp TSA'}
                       </span>
-                    )}
+                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-zinc-400">
+                        <span className="inline-flex items-center gap-1">
+                          <FileText className="w-3.5 h-3.5" />
+                          {exam.questions.length} câu
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {exam.duration_minutes} phút
+                        </span>
+                      </div>
+                    </div>
+
+                    <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100 leading-snug line-clamp-2">
+                      {exam.title}
+                    </h2>
                   </div>
 
-                  <h4 className="text-base font-bold text-slate-900 group-hover:text-rose-700 transition-colors line-clamp-2">
-                    {exam.title}
-                  </h4>
-                  <p className="mt-2 text-sm text-slate-600 line-clamp-3">
-                    {exam.description}
-                  </p>
-                </div>
-
-                <div className="mt-5 pt-4 border-t border-slate-100">
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
-                    <span className="inline-flex items-center gap-1.5 font-medium">
-                      <FileText className="w-4 h-4 text-slate-400" />
-                      {exam.questions.length} câu hỏi
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 font-medium">
-                      <Clock className="w-4 h-4 text-slate-400" />
-                      {exam.duration_minutes} phút
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleStart(exam)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-800 transition-colors"
-                    >
-                      <Play className="w-4 h-4 fill-current" />
-                      Bắt đầu thi
-                    </button>
+                  <div className="flex items-center gap-2.5 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
                     <button
                       onClick={() => setLeaderboardExam(exam)}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-700 transition-colors"
-                      title="Xem bảng xếp hạng"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
                     >
-                      <Trophy className="w-4 h-4" />
-                      Top
+                      <Trophy className="w-3.5 h-3.5 text-slate-400" />
+                      Bảng xếp hạng
+                    </button>
+
+                    <button
+                      onClick={() => handleEnterExam(exam)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white transition-colors"
+                    >
+                      Vào thi
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white py-5 text-center text-xs text-slate-500">
-        Bốp Bốp TSA — Nền tảng luyện thi Đánh giá tư duy HUST
+      <footer className="border-t border-slate-200/80 dark:border-zinc-800 py-5 text-center text-xs text-slate-400 dark:text-zinc-500">
+        Bốp Bốp TSA — Luyện thi Đánh giá tư duy HUST
       </footer>
 
       <LeaderboardModal

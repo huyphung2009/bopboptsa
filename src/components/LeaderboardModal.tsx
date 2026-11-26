@@ -43,99 +43,100 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   if (!exam) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between bg-gradient-to-r from-red-800 via-rose-700 to-amber-600 px-6 py-4 text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
+      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-zinc-900 shadow-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80 dark:border-zinc-800">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-              <Trophy className="w-5 h-5 text-amber-300" />
-            </div>
+            <Trophy className="w-5 h-5 text-red-700 dark:text-red-500 shrink-0" />
             <div className="min-w-0">
-              <h3 className="text-lg font-bold">Bảng xếp hạng TSA</h3>
-              <p className="text-xs text-rose-100 truncate">{exam.title}</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                Bảng xếp hạng
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 truncate">
+                {exam.title}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => loadData(exam.id)}
               disabled={loading}
-              className="rounded-lg p-1.5 hover:bg-white/20 transition-colors disabled:opacity-50"
+              className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
               title="Tải lại bảng xếp hạng"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 hover:bg-white/20 transition-colors"
+              className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
               aria-label="Đóng bảng xếp hạng"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div className="p-5 sm:p-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+        <div className="p-5 sm:p-6 max-h-[72vh] overflow-y-auto custom-scrollbar">
           {loading ? (
-            <div className="py-12 text-center text-slate-500">
-              <div className="inline-block w-7 h-7 border-3 border-rose-600 border-t-transparent rounded-full animate-spin mb-2" />
-              <p className="text-sm">Đang tải dữ liệu xếp hạng từ Supabase...</p>
+            <div className="py-12 text-center text-slate-500 dark:text-zinc-400">
+              <div className="inline-block w-6 h-6 border-2 border-red-700 border-t-transparent rounded-full animate-spin mb-2" />
+              <p className="text-xs">Đang tải dữ liệu xếp hạng...</p>
             </div>
           ) : error ? (
-            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+            <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 p-4 text-xs text-red-700 dark:text-red-300">
               Không thể tải bảng xếp hạng: {error}
             </div>
           ) : attempts.length === 0 ? (
             <div className="py-12 text-center">
-              <Award className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-600 font-medium">Chưa có lượt thi nào cho đề này.</p>
-              <p className="text-sm text-slate-400 mt-1">
-                Hãy là thí sinh đầu tiên ghi danh trên bảng vàng!
+              <Award className="w-10 h-10 text-slate-300 dark:text-zinc-700 mx-auto mb-2.5" />
+              <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">
+                Chưa có lượt thi nào cho đề này.
+              </p>
+              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">
+                Hãy hoàn thành bài thi để ghi danh đầu tiên.
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    <th className="py-3 px-3">Hạng</th>
-                    <th className="py-3 px-3">Thí sinh</th>
-                    <th className="py-3 px-3 text-right">Điểm (/100)</th>
-                    <th className="py-3 px-3 text-right">Số câu đúng</th>
-                    <th className="py-3 px-3 text-right">Thời gian</th>
+                  <tr className="border-b border-slate-200/80 dark:border-zinc-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                    <th className="py-2.5 px-3">Hạng</th>
+                    <th className="py-2.5 px-3">Thí sinh</th>
+                    <th className="py-2.5 px-3 text-right">Điểm (/100)</th>
+                    <th className="py-2.5 px-3 text-right">Đúng</th>
+                    <th className="py-2.5 px-3 text-right">Thời gian</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-sm">
+                <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80 text-sm">
                   {attempts.map((item, idx) => {
                     const rank = idx + 1;
-                    const rowBg =
-                      rank === 1
-                        ? 'bg-gradient-to-r from-amber-50 to-yellow-50/50'
-                        : rank === 2
-                          ? 'bg-slate-50/90'
-                          : rank === 3
-                            ? 'bg-orange-50/50'
-                            : 'hover:bg-slate-50';
-
                     return (
-                      <tr key={item.id ?? `${item.student_name}-${idx}`} className={rowBg}>
-                        <td className="py-3 px-3 font-bold whitespace-nowrap">
+                      <tr
+                        key={item.id ?? `${item.student_name}-${idx}`}
+                        className="hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors"
+                      >
+                        <td className="py-3 px-3 whitespace-nowrap">
                           {rank === 1 ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-xs font-extrabold text-amber-700">
-                              <Crown className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
-                              Top 1
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                              <Crown className="w-4 h-4 fill-amber-400/30" />
+                              #1
                             </span>
                           ) : rank === 2 ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-200 border border-slate-300 px-2.5 py-0.5 text-xs font-extrabold text-slate-700">
-                              <Medal className="w-3.5 h-3.5 text-slate-600" />
-                              Top 2
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-zinc-400">
+                              <Medal className="w-4 h-4" />
+                              #2
                             </span>
                           ) : rank === 3 ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 border border-orange-300 px-2.5 py-0.5 text-xs font-extrabold text-orange-800">
-                              <Medal className="w-3.5 h-3.5 text-orange-700" />
-                              Top 3
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 dark:text-orange-400">
+                              <Medal className="w-4 h-4" />
+                              #3
                             </span>
                           ) : (
-                            <span className="text-slate-400 pl-2">#{rank}</span>
+                            <span className="text-xs font-medium text-slate-400 dark:text-zinc-500 pl-1">
+                              #{rank}
+                            </span>
                           )}
                         </td>
 
@@ -145,31 +146,31 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                               <img
                                 src={item.avatar_url}
                                 alt={item.student_name}
-                                className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+                                className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
                                 referrerPolicy="no-referrer"
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center shrink-0 border border-rose-200">
+                              <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[11px] font-bold flex items-center justify-center shrink-0 border border-slate-200/80 dark:border-zinc-700">
                                 {getInitials(item.student_name)}
                               </div>
                             )}
-                            <span className="font-semibold text-slate-800 truncate max-w-[180px] sm:max-w-[240px]">
+                            <span className="font-medium text-slate-800 dark:text-zinc-200 truncate max-w-[170px] sm:max-w-[240px]">
                               {item.student_name}
                             </span>
                           </div>
                         </td>
 
-                        <td className="py-3 px-3 text-right font-extrabold text-rose-700">
+                        <td className="py-3 px-3 text-right font-bold font-mono text-slate-900 dark:text-zinc-100">
                           {Number(item.score).toFixed(2)}
                         </td>
 
-                        <td className="py-3 px-3 text-right font-medium text-slate-600">
-                          {item.correct_count ?? '-'} / {item.total_questions ?? '-'}
+                        <td className="py-3 px-3 text-right text-xs text-slate-500 dark:text-zinc-400 font-mono">
+                          {item.correct_count ?? '-'}/{item.total_questions ?? '-'}
                         </td>
 
-                        <td className="py-3 px-3 text-right text-slate-500 whitespace-nowrap">
+                        <td className="py-3 px-3 text-right text-xs text-slate-500 dark:text-zinc-400 font-mono whitespace-nowrap">
                           <span className="inline-flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" />
+                            <Clock className="w-3 h-3" />
                             {item.time_spent_seconds !== undefined
                               ? formatDuration(item.time_spent_seconds)
                               : '--:--'}

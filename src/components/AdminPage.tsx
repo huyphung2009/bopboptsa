@@ -5,7 +5,7 @@ import {
   Database,
   FileCode2,
   Lock,
-  ShieldCheck,
+  Shield,
   Upload,
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -180,51 +180,52 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackHome, onExamCreated 
 
   if (!unlocked) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 p-7 shadow-xl">
+      <div className="min-h-screen bg-[#FAFAFA] dark:bg-zinc-950 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 p-6 shadow-xs">
           <button
             onClick={onBackHome}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 mb-5"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 mb-5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Quay lại trang chủ
+            Quay lại
           </button>
 
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-11 h-11 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center">
-              <Lock className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 flex items-center justify-center">
+              <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900">Trang Quản trị TSA</h1>
-              <p className="text-xs text-slate-500">
-                Nhập mật khẩu quản trị để nạp đề thi mới
+              <h1 className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                Quản trị đề thi
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                Nhập mật khẩu để tiếp tục
               </p>
             </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                Mật khẩu
-              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu..."
+                placeholder="Mật khẩu quản trị..."
                 autoFocus
-                className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-600/20"
+                className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
               />
               {authError && (
-                <p className="mt-1.5 text-xs font-medium text-rose-600">{authError}</p>
+                <p className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                  {authError}
+                </p>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 transition-colors"
+              className="w-full rounded-lg bg-red-700 hover:bg-red-800 py-2 text-xs font-semibold text-white transition-colors"
             >
-              Đăng nhập Quản trị
+              Mở khóa
             </button>
           </form>
         </div>
@@ -233,40 +234,37 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackHome, onExamCreated 
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-14">
-      <header className="sticky top-0 z-20 bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="w-6 h-6 text-rose-700" />
-            <h1 className="text-base sm:text-lg font-bold text-slate-900">
-              Quản trị Kho đề Bốp Bốp TSA
-            </h1>
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-14">
+      <header className="sticky top-0 z-20 backdrop-blur-md bg-white/80 dark:bg-zinc-950/80 border-b border-slate-200/80 dark:border-zinc-800">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Shield className="w-4 h-4 text-red-700 dark:text-red-500" />
+            <h1 className="text-sm sm:text-base font-bold">Quản trị Kho đề TSA</h1>
           </div>
 
           <button
             onClick={onBackHome}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Về trang chủ
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Trang chủ
           </button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: JSON Input */}
-        <section className="rounded-2xl bg-white border border-slate-200 p-5 sm:p-6 shadow-xs flex flex-col">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 p-5 shadow-xs flex flex-col">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Database className="w-4 h-4 text-rose-700" />
-              Nạp đề thi mới từ JSON
+            <h2 className="text-sm font-bold flex items-center gap-2">
+              <Database className="w-4 h-4 text-red-700 dark:text-red-500" />
+              Nạp đề thi từ JSON
             </h2>
             <button
               type="button"
               onClick={handleFillSample}
-              className="text-xs font-semibold text-rose-700 hover:underline"
+              className="text-xs font-medium text-red-700 dark:text-red-400 hover:underline"
             >
-              Điền JSON mẫu vào ô
+              Điền JSON mẫu
             </button>
           </div>
 
@@ -275,15 +273,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackHome, onExamCreated 
             onChange={(e) => setJsonInput(e.target.value)}
             rows={18}
             placeholder="Dán mã JSON đề thi tại đây..."
-            className="w-full flex-1 rounded-xl border border-slate-300 bg-slate-50 p-3.5 font-mono text-xs text-slate-800 focus:border-rose-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-600/20"
+            className="w-full flex-1 rounded-lg border border-slate-200 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 p-3.5 font-mono text-xs text-slate-800 dark:text-zinc-200 focus:border-red-700 focus:outline-none"
           />
 
           {statusMsg && (
             <div
-              className={`mt-4 rounded-xl p-3.5 text-xs font-medium border ${
+              className={`mt-4 rounded-lg p-3 text-xs font-medium border ${
                 statusMsg.type === 'success'
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                  : 'bg-rose-50 border-rose-200 text-rose-800'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300'
+                  : 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900 text-red-800 dark:text-red-300'
               }`}
             >
               {statusMsg.text}
@@ -294,24 +292,23 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackHome, onExamCreated 
             type="button"
             onClick={handleUploadExam}
             disabled={submitting}
-            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-700 px-5 py-3 text-sm font-bold text-white hover:bg-rose-800 disabled:opacity-50 transition-colors"
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-50 transition-colors"
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-3.5 h-3.5" />
             {submitting ? 'Đang nạp lên Supabase...' : 'Nạp đề lên Supabase'}
           </button>
         </section>
 
-        {/* Right: JSON Guide & Template */}
-        <section className="rounded-2xl bg-white border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
+        <section className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <FileCode2 className="w-4 h-4 text-slate-700" />
-              Hướng dẫn định dạng JSON chuẩn TSA
+            <h2 className="text-sm font-bold flex items-center gap-2">
+              <FileCode2 className="w-4 h-4 text-slate-500" />
+              Định dạng JSON chuẩn TSA
             </h2>
             <button
               type="button"
               onClick={handleCopySample}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-700"
             >
               {copied ? (
                 <>
@@ -321,35 +318,32 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackHome, onExamCreated 
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5" />
-                  Copy JSON mẫu
+                  Copy mẫu
                 </>
               )}
             </button>
           </div>
 
-          <ul className="text-xs text-slate-600 space-y-1.5 list-disc pl-4 leading-relaxed">
+          <ul className="text-xs text-slate-600 dark:text-zinc-400 space-y-1.5 list-disc pl-4 leading-relaxed">
             <li>
-              Hỗ trợ 4 loại <code>type</code>: <code>single_choice</code>,{' '}
+              4 loại <code>type</code>: <code>single_choice</code>,{' '}
               <code>true_false</code>, <code>drag_drop</code>, <code>short_answer</code>.
             </li>
             <li>
-              Công thức toán KaTeX dùng <code>$...$</code> (inline) hoặc{' '}
-              <code>$$...$$</code> (block). Lưu ý escape dấu <code>\</code> thành{' '}
-              <code>\\</code> trong chuỗi JSON.
+              KaTeX: dùng <code>$...$</code> hoặc <code>$$...$$</code> (escape{' '}
+              <code>\</code> thành <code>\\</code> trong JSON).
             </li>
             <li>
-              Với câu <code>drag_drop</code>, đặt placeholder dạng <code>[[b1]]</code>{' '}
-              trong <code>prompt</code> khớp với <code>id</code> trong mảng{' '}
-              <code>blanks</code>.
+              <code>drag_drop</code>: đặt placeholder <code>[[b1]]</code> trong{' '}
+              <code>prompt</code> khớp với <code>blanks[].id</code>.
             </li>
             <li>
-              Nếu câu hỏi đi kèm đoạn văn/ngữ liệu bên trái, gán{' '}
-              <code>passageId</code> trùng với <code>id</code> trong mảng{' '}
-              <code>passages</code>.
+              Câu Đọc hiểu / Khoa học: gán <code>passageId</code> khớp với{' '}
+              <code>passages[].id</code>.
             </li>
           </ul>
 
-          <pre className="max-h-[420px] overflow-auto custom-scrollbar rounded-xl bg-slate-900 p-4 text-[11px] leading-relaxed text-slate-200 font-mono">
+          <pre className="max-h-[420px] overflow-auto custom-scrollbar rounded-lg bg-zinc-950 border border-zinc-800 p-4 text-[11px] leading-relaxed text-zinc-300 font-mono">
             {SAMPLE_JSON_TEMPLATE}
           </pre>
         </section>

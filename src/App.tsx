@@ -27,6 +27,11 @@ export function App() {
   const [loadingExams, setLoadingExams] = useState(true);
   const [fromFallback, setFromFallback] = useState(false);
 
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('bopbop-theme') === 'dark';
+  });
+
   const [user, setUser] = useState<User | null>(null);
   const [studentName, setStudentName] = useState('');
   const [activeExam, setActiveExam] = useState<Exam | null>(null);
@@ -34,6 +39,12 @@ export function App() {
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error'>('saving');
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
+
+  // Apply Light / Dark mode class to <html>
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('bopbop-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   // Sync Supabase Auth session
   useEffect(() => {
@@ -71,6 +82,8 @@ export function App() {
   useEffect(() => {
     loadExams();
   }, [loadExams]);
+
+  const handleToggleDark = () => setIsDark((d) => !d);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -112,7 +125,6 @@ export function App() {
     if (res.ok) {
       setSaveStatus('saved');
       setLeaderboardRefreshKey((k) => k + 1);
-      // Prefetch/reload leaderboard immediately after submission
       void getLeaderboard(result.examId);
     } else {
       setSaveStatus('error');
@@ -138,6 +150,8 @@ export function App() {
       <ExamRoom
         exam={activeExam}
         studentName={resolvedName}
+        isDark={isDark}
+        onToggleDark={handleToggleDark}
         onSubmit={handleSubmitExam}
         onExit={() => setView('home')}
       />
@@ -165,6 +179,8 @@ export function App() {
       fromFallback={fromFallback}
       user={user}
       studentName={studentName}
+      isDark={isDark}
+      onToggleDark={handleToggleDark}
       onChangeStudentName={setStudentName}
       onStartExam={handleStartExam}
       onRefresh={loadExams}
