@@ -156,15 +156,17 @@ export async function submitAttempt(attempt: AttemptRecord): Promise<{
   }
 }
 
-export async function createExam(
+export async function upsertExam(
   exam: Omit<Exam, 'id' | 'created_at'> & { id?: string }
 ): Promise<{
   ok: boolean;
+  id?: string;
   errorMessage?: string;
 }> {
   try {
+    const examId = exam.id && exam.id.trim() ? exam.id.trim() : crypto.randomUUID();
     const payload = {
-      ...(exam.id ? { id: exam.id } : {}),
+      id: examId,
       title: exam.title,
       description: exam.description,
       section: exam.section ?? 'Tổng hợp',
@@ -173,18 +175,50 @@ export async function createExam(
       questions: exam.questions,
     };
 
-    const { error } = await supabase.from('exams').insert([payload]);
+    const { error } = await supabase
+      .from('exams')
+      .upsert([payload], { onConflict: 'id' });
 
     if (error) {
-      console.error('[createExam] Supabase error:', error);
+      console.error('[upsertExam] Supabase error:', error);
+      return { ok: false, errorMessage: error.message };
+    }
+    return { ok: true, id: examId };
+  } catch (err) {
+    console.error('[upsertExam] Unexpected error:', err);
+    return {
+      ok: false,
+      errorMessage: err instanceof Error ? err.message : 'Lỗi lưu đề thi',
+    };
+  }
+}
+
+export async function deleteExam(examId: string): Promise<{
+  ok: boolean;
+  errorMessage?: string;
+}> {
+  try {
+    const { error } = await supabase.from('exams').delete().eq('id', examId);
+    if (error) {
+      console.error('[deleteExam] Supabase error:', error);
       return { ok: false, errorMessage: error.message };
     }
     return { ok: true };
   } catch (err) {
-    console.error('[createExam] Unexpected error:', err);
+    console.error('[deleteExam] Unexpected error:', err);
     return {
       ok: false,
-      errorMessage: err instanceof Error ? err.message : 'Lỗi nạp đề thi',
+      errorMessage: err instanceof Error ? err.message : 'Lỗi xóa đề thi',
     };
   }
+}
+
+export async function createExam(
+  exam: Omit<Exam, 'id' | 'created_at'> & { id?: string }
+): Promise<{
+  ok: boolean;
+  errorMessage?: string;
+}> {
+  const res = await upsertExam(exam);
+  return { ok: res.ok, errorMessage: res.errorMessage };
 }

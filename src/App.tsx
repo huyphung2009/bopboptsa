@@ -135,6 +135,7 @@ export function App() {
   if (view === 'admin') {
     return (
       <AdminPage
+        userEmail={user?.email}
         onBackHome={() => setView('home')}
         onExamCreated={() => {
           loadExams();
