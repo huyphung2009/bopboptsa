@@ -97,8 +97,11 @@ export interface AttemptRecord {
   exam_id: string;
   student_name: string;
   score: number;
-  correct_count?: number;
-  total_questions?: number;
-  time_spent_seconds?: number;
+  correct_count: number;
+  total_questions: number;
+  time_spent_seconds: number;
+  user_answers?: UserAnswers | null;
+  user_id?: string | null;
+  avatar_url?: string | null;
   created_at?: string;
 }

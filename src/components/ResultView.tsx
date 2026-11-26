@@ -7,11 +7,13 @@ import {
   CloudOff,
   HelpCircle,
   RotateCcw,
+  Trophy,
   XCircle,
 } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 import type { Exam, ExamAttemptResult } from '../types/exam';
 import { formatDuration } from '../utils/scoring';
+import { LeaderboardModal } from './LeaderboardModal';
 import { MathText } from './MathText';
 import { QuestionRenderer } from './QuestionRenderer';
 
@@ -20,6 +22,7 @@ interface ResultViewProps {
   result: ExamAttemptResult;
   saveStatus: 'saving' | 'saved' | 'error';
   saveError?: string;
+  leaderboardRefreshKey: number;
   onBackHome: () => void;
   onRetry: () => void;
 }
@@ -29,14 +32,17 @@ export const ResultView: React.FC<ResultViewProps> = ({
   result,
   saveStatus,
   saveError,
+  leaderboardRefreshKey,
   onBackHome,
   onRetry,
 }) => {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
       {/* Top Bar */}
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2">
           <button
             onClick={onBackHome}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-rose-700 transition-colors"
@@ -45,13 +51,22 @@ export const ResultView: React.FC<ResultViewProps> = ({
             Về kho đề thi
           </button>
 
-          <button
-            onClick={onRetry}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-rose-700 px-4 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-rose-800 transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Thi lại đề này
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowLeaderboard(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs sm:text-sm font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+            >
+              <Trophy className="w-4 h-4 text-amber-600" />
+              Bảng xếp hạng
+            </button>
+            <button
+              onClick={onRetry}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-rose-700 px-4 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-rose-800 transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Thi lại đề này
+            </button>
+          </div>
         </div>
       </header>
 
@@ -206,6 +221,12 @@ export const ResultView: React.FC<ResultViewProps> = ({
           })}
         </section>
       </main>
+
+      <LeaderboardModal
+        exam={showLeaderboard ? exam : null}
+        refreshKey={leaderboardRefreshKey}
+        onClose={() => setShowLeaderboard(false)}
+      />
     </div>
   );
 };

@@ -49,6 +49,7 @@ export async function fetchExams(): Promise<{
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('[fetchExams] Supabase error:', error);
       return {
         exams: [SAMPLE_EXAM],
         fromFallback: true,
@@ -76,6 +77,7 @@ export async function fetchExams(): Promise<{
       fromFallback: false,
     };
   } catch (err) {
+    console.error('[fetchExams] Unexpected error:', err);
     return {
       exams: [SAMPLE_EXAM],
       fromFallback: true,
@@ -84,25 +86,30 @@ export async function fetchExams(): Promise<{
   }
 }
 
-export async function fetchLeaderboard(examId: string): Promise<{
+export async function getLeaderboard(examId: string): Promise<{
   attempts: AttemptRecord[];
   errorMessage?: string;
 }> {
   try {
     const { data, error } = await supabase
       .from('attempts')
-      .select('*')
+      .select(
+        'id, exam_id, student_name, score, correct_count, total_questions, time_spent_seconds, user_answers, user_id, avatar_url, created_at'
+      )
       .eq('exam_id', examId)
       .order('score', { ascending: false })
       .order('time_spent_seconds', { ascending: true })
+      .order('created_at', { ascending: true })
       .limit(50);
 
     if (error) {
+      console.error('[getLeaderboard] Supabase error:', error);
       return { attempts: [], errorMessage: error.message };
     }
 
     return { attempts: (data ?? []) as AttemptRecord[] };
   } catch (err) {
+    console.error('[getLeaderboard] Unexpected error:', err);
     return {
       attempts: [],
       errorMessage: err instanceof Error ? err.message : 'Không thể tải bảng xếp hạng',
@@ -110,27 +117,38 @@ export async function fetchLeaderboard(examId: string): Promise<{
   }
 }
 
-export async function saveAttempt(attempt: AttemptRecord): Promise<{
+export async function submitAttempt(attempt: AttemptRecord): Promise<{
   ok: boolean;
+  data?: AttemptRecord;
   errorMessage?: string;
 }> {
+  const payload = {
+    exam_id: attempt.exam_id,
+    student_name: attempt.student_name,
+    score: Number(attempt.score),
+    correct_count: Number(attempt.correct_count ?? 0),
+    total_questions: Number(attempt.total_questions ?? 0),
+    time_spent_seconds: Number(attempt.time_spent_seconds ?? 0),
+    user_answers: attempt.user_answers ?? {},
+    user_id: attempt.user_id ?? null,
+    avatar_url: attempt.avatar_url ?? null,
+  };
+
   try {
-    const { error } = await supabase.from('attempts').insert([
-      {
-        exam_id: attempt.exam_id,
-        student_name: attempt.student_name,
-        score: attempt.score,
-        correct_count: attempt.correct_count,
-        total_questions: attempt.total_questions,
-        time_spent_seconds: attempt.time_spent_seconds,
-      },
-    ]);
+    const { data, error } = await supabase
+      .from('attempts')
+      .insert([payload])
+      .select()
+      .single();
 
     if (error) {
+      console.error('[submitAttempt] Supabase error:', error, 'Payload:', payload);
       return { ok: false, errorMessage: error.message };
     }
-    return { ok: true };
+
+    return { ok: true, data: data as AttemptRecord };
   } catch (err) {
+    console.error('[submitAttempt] Unexpected error:', err);
     return {
       ok: false,
       errorMessage: err instanceof Error ? err.message : 'Lỗi lưu kết quả',
@@ -138,7 +156,9 @@ export async function saveAttempt(attempt: AttemptRecord): Promise<{
   }
 }
 
-export async function createExam(exam: Omit<Exam, 'id' | 'created_at'> & { id?: string }): Promise<{
+export async function createExam(
+  exam: Omit<Exam, 'id' | 'created_at'> & { id?: string }
+): Promise<{
   ok: boolean;
   errorMessage?: string;
 }> {
@@ -156,10 +176,12 @@ export async function createExam(exam: Omit<Exam, 'id' | 'created_at'> & { id?: 
     const { error } = await supabase.from('exams').insert([payload]);
 
     if (error) {
+      console.error('[createExam] Supabase error:', error);
       return { ok: false, errorMessage: error.message };
     }
     return { ok: true };
   } catch (err) {
+    console.error('[createExam] Unexpected error:', err);
     return {
       ok: false,
       errorMessage: err instanceof Error ? err.message : 'Lỗi nạp đề thi',

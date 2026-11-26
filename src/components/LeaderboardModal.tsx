@@ -1,60 +1,80 @@
-import { Award, Clock, Medal, Trophy, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { fetchLeaderboard } from '../lib/examService';
+import { Award, Clock, Crown, Medal, RefreshCw, Trophy, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { getLeaderboard } from '../lib/examService';
 import type { AttemptRecord, Exam } from '../types/exam';
 import { formatDuration } from '../utils/scoring';
 
 interface LeaderboardModalProps {
   exam: Exam | null;
+  refreshKey?: number;
   onClose: () => void;
 }
 
-export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ exam, onClose }) => {
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0 || !parts[0]) return '?';
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
+  exam,
+  refreshKey = 0,
+  onClose,
+}) => {
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!exam) return;
-    let cancelled = false;
+  const loadData = useCallback(async (examId: string) => {
     setLoading(true);
     setError(null);
+    const res = await getLeaderboard(examId);
+    setAttempts(res.attempts);
+    setError(res.errorMessage ?? null);
+    setLoading(false);
+  }, []);
 
-    fetchLeaderboard(exam.id).then((res) => {
-      if (cancelled) return;
-      setAttempts(res.attempts);
-      setError(res.errorMessage ?? null);
-      setLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [exam]);
+  useEffect(() => {
+    if (!exam) return;
+    loadData(exam.id);
+  }, [exam, refreshKey, loadData]);
 
   if (!exam) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between bg-gradient-to-r from-red-700 to-rose-600 px-6 py-4 text-white">
-          <div className="flex items-center gap-3">
-            <Trophy className="w-6 h-6 text-amber-300" />
-            <div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="flex items-center justify-between bg-gradient-to-r from-red-800 via-rose-700 to-amber-600 px-6 py-4 text-white">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <Trophy className="w-5 h-5 text-amber-300" />
+            </div>
+            <div className="min-w-0">
               <h3 className="text-lg font-bold">Bảng xếp hạng TSA</h3>
-              <p className="text-xs text-rose-100 line-clamp-1">{exam.title}</p>
+              <p className="text-xs text-rose-100 truncate">{exam.title}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 hover:bg-white/20 transition-colors"
-            aria-label="Đóng bảng xếp hạng"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => loadData(exam.id)}
+              disabled={loading}
+              className="rounded-lg p-1.5 hover:bg-white/20 transition-colors disabled:opacity-50"
+              title="Tải lại bảng xếp hạng"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 hover:bg-white/20 transition-colors"
+              aria-label="Đóng bảng xếp hạng"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div className="p-5 sm:p-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="py-12 text-center text-slate-500">
               <div className="inline-block w-7 h-7 border-3 border-rose-600 border-t-transparent rounded-full animate-spin mb-2" />
@@ -87,38 +107,67 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ exam, onClos
                 <tbody className="divide-y divide-slate-100 text-sm">
                   {attempts.map((item, idx) => {
                     const rank = idx + 1;
+                    const rowBg =
+                      rank === 1
+                        ? 'bg-gradient-to-r from-amber-50 to-yellow-50/50'
+                        : rank === 2
+                          ? 'bg-slate-50/90'
+                          : rank === 3
+                            ? 'bg-orange-50/50'
+                            : 'hover:bg-slate-50';
+
                     return (
-                      <tr
-                        key={item.id ?? `${item.student_name}-${idx}`}
-                        className={rank <= 3 ? 'bg-amber-50/40' : 'hover:bg-slate-50'}
-                      >
-                        <td className="py-3 px-3 font-bold">
+                      <tr key={item.id ?? `${item.student_name}-${idx}`} className={rowBg}>
+                        <td className="py-3 px-3 font-bold whitespace-nowrap">
                           {rank === 1 ? (
-                            <span className="inline-flex items-center gap-1 text-amber-600">
-                              <Medal className="w-4 h-4" /> #1
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-xs font-extrabold text-amber-700">
+                              <Crown className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+                              Top 1
                             </span>
                           ) : rank === 2 ? (
-                            <span className="inline-flex items-center gap-1 text-slate-500">
-                              <Medal className="w-4 h-4" /> #2
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-200 border border-slate-300 px-2.5 py-0.5 text-xs font-extrabold text-slate-700">
+                              <Medal className="w-3.5 h-3.5 text-slate-600" />
+                              Top 2
                             </span>
                           ) : rank === 3 ? (
-                            <span className="inline-flex items-center gap-1 text-amber-700">
-                              <Medal className="w-4 h-4" /> #3
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 border border-orange-300 px-2.5 py-0.5 text-xs font-extrabold text-orange-800">
+                              <Medal className="w-3.5 h-3.5 text-orange-700" />
+                              Top 3
                             </span>
                           ) : (
-                            <span className="text-slate-400">#{rank}</span>
+                            <span className="text-slate-400 pl-2">#{rank}</span>
                           )}
                         </td>
-                        <td className="py-3 px-3 font-medium text-slate-800">
-                          {item.student_name}
+
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-2.5">
+                            {item.avatar_url ? (
+                              <img
+                                src={item.avatar_url}
+                                alt={item.student_name}
+                                className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center shrink-0 border border-rose-200">
+                                {getInitials(item.student_name)}
+                              </div>
+                            )}
+                            <span className="font-semibold text-slate-800 truncate max-w-[180px] sm:max-w-[240px]">
+                              {item.student_name}
+                            </span>
+                          </div>
                         </td>
-                        <td className="py-3 px-3 text-right font-bold text-rose-700">
+
+                        <td className="py-3 px-3 text-right font-extrabold text-rose-700">
                           {Number(item.score).toFixed(2)}
                         </td>
-                        <td className="py-3 px-3 text-right text-slate-600">
+
+                        <td className="py-3 px-3 text-right font-medium text-slate-600">
                           {item.correct_count ?? '-'} / {item.total_questions ?? '-'}
                         </td>
-                        <td className="py-3 px-3 text-right text-slate-500">
+
+                        <td className="py-3 px-3 text-right text-slate-500 whitespace-nowrap">
                           <span className="inline-flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" />
                             {item.time_spent_seconds !== undefined
