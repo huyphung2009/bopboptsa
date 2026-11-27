@@ -1399,7 +1399,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   .filter((a) => a.email.toLowerCase() !== SUPER_ADMIN_EMAIL)
                   .map((admin) => (
                     <div
-                      key={admin.id ?? admin.email}
+                      key={admin.email}
                       className="px-5 py-3.5 flex items-center justify-between gap-3"
                     >
                       <div className="min-w-0">

@@ -36,7 +36,6 @@ function readLocalGoal(userId: string): Partial<TargetGoalPayload> | null {
 }
 
 export interface AppAdminRecord {
-  id?: string;
   email: string;
   added_by?: string | null;
   created_at?: string;
@@ -278,7 +277,7 @@ export async function fetchAppAdmins(): Promise<{
   try {
     const { data, error } = await supabase
       .from('app_admins')
-      .select('id, email, added_by, created_at')
+      .select('email, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -298,7 +297,7 @@ export async function fetchAppAdmins(): Promise<{
 
 export async function addAppAdmin(
   email: string,
-  addedBy?: string | null
+  _addedBy?: string | null
 ): Promise<{ ok: boolean; errorMessage?: string }> {
   const normalized = email.trim().toLowerCase();
   if (!normalized || !normalized.includes('@')) {
@@ -311,7 +310,7 @@ export async function addAppAdmin(
   try {
     const { error } = await supabase
       .from('app_admins')
-      .upsert([{ email: normalized, added_by: addedBy ?? SUPER_ADMIN_EMAIL }], {
+      .upsert([{ email: normalized }], {
         onConflict: 'email',
       });
 
@@ -342,7 +341,7 @@ export async function removeAppAdmin(email: string): Promise<{
     const { error } = await supabase
       .from('app_admins')
       .delete()
-      .ilike('email', normalized);
+      .eq('email', normalized);
 
     if (error) {
       console.error('[removeAppAdmin] Supabase error:', error);
