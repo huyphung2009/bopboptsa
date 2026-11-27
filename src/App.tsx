@@ -138,18 +138,27 @@ export function App() {
   const handleSubmitExam = async (
     answers: UserAnswers,
     timeSpentSeconds: number,
-    targetSectionId?: string
+    targetSectionId?: string,
+    proctoring?: { violationCount: number; isFlagged: boolean }
   ) => {
     if (!activeExam) return;
     const resolvedName =
       studentName.trim() || getDisplayNameFromUser(user) || 'Thí sinh ẩn danh';
-    const result = gradeExam(
+    const violationCount = proctoring?.violationCount ?? 0;
+    const isFlagged = Boolean(proctoring?.isFlagged || violationCount > 3);
+
+    const graded = gradeExam(
       activeExam,
       resolvedName,
       answers,
       timeSpentSeconds,
       targetSectionId
     );
+    const result: ExamAttemptResult = {
+      ...graded,
+      violationCount,
+      isFlagged,
+    };
 
     const earnedXp = calculateEarnedXp(result.score100, result.correctCount);
     setAttemptResult(result);
@@ -159,7 +168,10 @@ export function App() {
 
     const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
 
-    if (user) {
+    if (isFlagged) {
+      // Flagged attempt: do NOT award XP
+      setXpAward(null);
+    } else if (user) {
       const xpRes = await awardExamXp({
         userId: user.id,
         earnedXp,
@@ -195,6 +207,8 @@ export function App() {
       correct_count: result.correctCount,
       total_questions: result.totalQuestions,
       time_spent_seconds: result.timeSpentSeconds,
+      violation_count: violationCount,
+      is_flagged: isFlagged,
       user_answers: answers,
       user_id: user?.id ?? null,
       avatar_url: avatarUrl,

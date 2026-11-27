@@ -229,7 +229,25 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     isCurrentUser: Boolean(currentUserId && p.id === currentUserId),
   }));
 
-  const examTop3: PodiumEntry[] = attempts.slice(0, 3).map((a, i) => ({
+  const validAttempts = useMemo(
+    () =>
+      attempts.filter(
+        (a) => !a.is_flagged && (a.violation_count ?? 0) <= 3
+      ),
+    [attempts]
+  );
+
+  const sortedExamAttempts = useMemo(
+    () => [
+      ...validAttempts,
+      ...attempts.filter(
+        (a) => a.is_flagged || (a.violation_count ?? 0) > 3
+      ),
+    ],
+    [validAttempts, attempts]
+  );
+
+  const examTop3: PodiumEntry[] = validAttempts.slice(0, 3).map((a, i) => ({
     rank: (i + 1) as 1 | 2 | 3,
     name: a.student_name,
     avatarUrl: a.avatar_url,
@@ -453,7 +471,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 </div>
               )}
 
-              {activeTab === 'exam' && attempts.length > 3 && (
+              {activeTab === 'exam' && sortedExamAttempts.length > 3 && (
                 <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
@@ -466,7 +484,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80 text-sm">
-                      {attempts.slice(3).map((item, idx) => {
+                      {sortedExamAttempts.slice(3).map((item, idx) => {
                         const rank = idx + 4;
                         const profile = item.user_id
                           ? profilesMap[item.user_id]
@@ -505,6 +523,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                                   <span className="text-slate-800 dark:text-zinc-200 truncate max-w-[150px]">
                                     {item.student_name}
                                   </span>
+                                  {(item.is_flagged || (item.violation_count ?? 0) > 3) && (
+                                    <span className="rounded bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-900 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-400">
+                                      Vi phạm quy chế
+                                    </span>
+                                  )}
                                   {profile ? (
                                     <RankBadge xp={profile.xp} compact />
                                   ) : (

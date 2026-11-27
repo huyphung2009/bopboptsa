@@ -6,6 +6,7 @@ import {
   CloudOff,
   HelpCircle,
   RotateCcw,
+  ShieldAlert,
   Sparkles,
   Trophy,
   XCircle,
@@ -87,6 +88,23 @@ export const ResultView: React.FC<ResultViewProps> = ({
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
+        {/* Flagged Violation Notice */}
+        {(result.isFlagged || (result.violationCount ?? 0) > 3) && (
+          <section className="rounded-xl border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-4 sm:p-5 flex items-start gap-3">
+            <ShieldAlert className="w-5 h-5 text-red-700 dark:text-red-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h2 className="text-sm font-bold text-red-800 dark:text-red-300">
+                Bài thi bị đánh dấu Vi phạm quy chế ({result.violationCount ?? 4} lần vi phạm)
+              </h2>
+              <p className="text-xs text-red-700 dark:text-red-400 leading-relaxed">
+                Hệ thống đã tự động khóa và nộp bài do vượt quá 3 lần cảnh báo giám sát.
+                Bài thi này không được cộng điểm kinh nghiệm (XP) và không được xét vào
+                Top vinh danh trên Bảng xếp hạng.
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* Level Up / +XP Banner */}
         {xpAward && (
           <section

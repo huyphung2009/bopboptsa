@@ -8,8 +8,11 @@ import {
   Clock,
   FileText,
   LogOut,
+  Maximize2,
   Moon,
   Send,
+  ShieldAlert,
+  ShieldCheck,
   Sun,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -32,7 +35,8 @@ interface ExamRoomProps {
   onSubmit: (
     answers: UserAnswers,
     timeSpentSeconds: number,
-    targetSectionId?: string
+    targetSectionId?: string,
+    proctoring?: { violationCount: number; isFlagged: boolean }
   ) => void;
   onExit: () => void;
 }
@@ -82,6 +86,23 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Anti-Cheat Proctoring state (active when exam.anti_cheat !== false)
+  const antiCheatEnabled = exam.anti_cheat !== false;
+  const [violationCount, setViolationCount] = useState(0);
+  const [violationModal, setViolationModal] = useState<{
+    reason: string;
+    count: number;
+    needsFullscreen: boolean;
+  } | null>(null);
+  const violationCountRef = useRef(0);
+  const lastViolationAtRef = useRef(0);
+  const answersRef = useRef(answers);
+  const remainingRef = useRef(remainingSeconds);
+  const accumulatedRef = useRef(accumulatedSeconds);
+  answersRef.current = answers;
+  remainingRef.current = remainingSeconds;
+  accumulatedRef.current = accumulatedSeconds;
+
   // Resizable split-screen state
   const [leftWidthPct, setLeftWidthPct] = useState(48);
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
@@ -120,7 +141,13 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
       if (isLastSection) {
         setIsSubmitting(true);
-        onSubmit(answers, nextTotalSpent, targetSectionId);
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {});
+        }
+        onSubmit(answers, nextTotalSpent, targetSectionId, {
+          violationCount: violationCountRef.current,
+          isFlagged: violationCountRef.current > 3,
+        });
       } else {
         setIntermissionSeconds(5);
       }
@@ -225,6 +252,148 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
     };
   }, [isDraggingDivider]);
 
+  // 5-Layer Anti-Cheat Proctoring
+  const requestFullscreenSafe = useCallback(() => {
+    if (!antiCheatEnabled) return;
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }, [antiCheatEnabled]);
+
+  const recordViolation = useCallback(
+    (reason: string, needsFullscreen = false) => {
+      if (!antiCheatEnabled || isSubmitting || intermissionSeconds !== null) return;
+      const now = Date.now();
+      if (now - lastViolationAtRef.current < 1500) return;
+      lastViolationAtRef.current = now;
+
+      const nextCount = violationCountRef.current + 1;
+      violationCountRef.current = nextCount;
+      setViolationCount(nextCount);
+
+      if (nextCount > 3) {
+        setViolationModal(null);
+        setIsSubmitting(true);
+        const spent = Math.max(1, sectionTotalSeconds - remainingRef.current);
+        const totalSpent = accumulatedRef.current + spent;
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {});
+        }
+        onSubmit(answersRef.current, totalSpent, targetSectionId, {
+          violationCount: nextCount,
+          isFlagged: true,
+        });
+      } else {
+        setViolationModal({
+          reason,
+          count: nextCount,
+          needsFullscreen: needsFullscreen || !document.fullscreenElement,
+        });
+      }
+    },
+    [
+      antiCheatEnabled,
+      isSubmitting,
+      intermissionSeconds,
+      sectionTotalSeconds,
+      onSubmit,
+      targetSectionId,
+    ]
+  );
+
+  // Layer 1: Enter Fullscreen on mount & exit on unmount
+  useEffect(() => {
+    if (!antiCheatEnabled) return;
+    requestFullscreenSafe();
+    return () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    };
+  }, [antiCheatEnabled, requestFullscreenSafe]);
+
+  // Layer 1 & 2: Fullscreen exit, visibilitychange, window blur
+  useEffect(() => {
+    if (!antiCheatEnabled) return;
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        recordViolation('Phát hiện rời khỏi tab phòng thi');
+      }
+    };
+
+    const handleBlur = () => {
+      recordViolation('Cửa sổ phòng thi mất tiêu điểm (chuyển sang ứng dụng/cửa sổ khác)');
+    };
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && !isSubmitting && intermissionSeconds === null) {
+        recordViolation('Thoát chế độ toàn màn hình', true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('blur', handleBlur);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [antiCheatEnabled, isSubmitting, intermissionSeconds, recordViolation]);
+
+  // Layer 3: Lock contextmenu, copy/cut/selectstart, and DevTools/Copy shortcuts
+  useEffect(() => {
+    if (!antiCheatEnabled) return;
+
+    const isEditableTarget = (target: EventTarget | null): boolean => {
+      const el = target as HTMLElement | null;
+      return Boolean(
+        el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+      );
+    };
+
+    const preventContext = (e: MouseEvent) => {
+      if (!isEditableTarget(e.target)) {
+        e.preventDefault();
+      }
+    };
+
+    const preventCopyCutSelect = (e: Event) => {
+      if (!isEditableTarget(e.target)) {
+        e.preventDefault();
+      }
+    };
+
+    const blockShortcuts = (e: KeyboardEvent) => {
+      const key = e.key.toUpperCase();
+      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+      if (
+        e.key === 'F12' ||
+        (ctrlOrMeta && e.shiftKey && (key === 'I' || key === 'J')) ||
+        (ctrlOrMeta && key === 'U') ||
+        (ctrlOrMeta && key === 'C' && !isEditableTarget(e.target))
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('contextmenu', preventContext);
+    document.addEventListener('copy', preventCopyCutSelect);
+    document.addEventListener('cut', preventCopyCutSelect);
+    document.addEventListener('selectstart', preventCopyCutSelect);
+    window.addEventListener('keydown', blockShortcuts);
+
+    return () => {
+      document.removeEventListener('contextmenu', preventContext);
+      document.removeEventListener('copy', preventCopyCutSelect);
+      document.removeEventListener('cut', preventCopyCutSelect);
+      document.removeEventListener('selectstart', preventCopyCutSelect);
+      window.removeEventListener('keydown', blockShortcuts);
+    };
+  }, [antiCheatEnabled]);
+
   const handleAnswerChange = (qId: string, val: UserAnswerValue) => {
     setAnswers((prev) => ({ ...prev, [qId]: val }));
   };
@@ -312,6 +481,26 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {antiCheatEnabled && (
+            <div
+              className={`hidden md:inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${
+                violationCount === 0
+                  ? 'border-emerald-200 dark:border-emerald-900/70 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                  : violationCount < 3
+                    ? 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
+                    : 'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-400'
+              }`}
+              title="Trạng thái giám sát chống gian lận"
+            >
+              {violationCount === 0 ? (
+                <ShieldCheck className="w-3.5 h-3.5" />
+              ) : (
+                <ShieldAlert className="w-3.5 h-3.5" />
+              )}
+              Giám sát: {violationCount}/3 vi phạm
+            </div>
+          )}
+
           <button
             onClick={onToggleDark}
             className="rounded-lg p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800 transition-colors"
@@ -586,6 +775,45 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                 className="rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition-colors"
               >
                 {isLastSection ? 'Nộp bài & Xem kết quả' : 'Nộp phần này'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Anti-Cheat Violation Warning Modal */}
+      {violationModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-red-950/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-2xl border-2 border-red-600 dark:border-red-500">
+            <div className="flex items-center gap-2.5 mb-3">
+              <ShieldAlert className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0" />
+              <h3 className="text-base font-bold text-red-700 dark:text-red-400">
+                Cảnh báo vi phạm quy chế ({violationModal.count}/3)
+              </h3>
+            </div>
+            <p className="text-sm text-slate-700 dark:text-zinc-300 leading-relaxed">
+              Lý do:{' '}
+              <span className="font-semibold text-slate-900 dark:text-zinc-100">
+                {violationModal.reason}
+              </span>
+              .
+            </p>
+            <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">
+              Còn {Math.max(0, 3 - violationModal.count)} lần cảnh báo. Nếu vượt quá 3 lần
+              vi phạm, hệ thống sẽ tự động khóa bài và nộp bài ngay lập tức!
+            </p>
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  requestFullscreenSafe();
+                  setViolationModal(null);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white transition-colors"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+                {violationModal.needsFullscreen
+                  ? 'Quay lại Toàn màn hình & Tiếp tục'
+                  : 'Đã hiểu & Tiếp tục làm bài'}
               </button>
             </div>
           </div>

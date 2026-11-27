@@ -39,6 +39,7 @@ function normalizeExamRow(row: any): Exam {
     exam_type: normalizeExamType(row.exam_type ?? payload.exam_type),
     section: row.section ?? payload.section ?? 'Tổng hợp',
     duration_minutes: Number(row.duration_minutes ?? payload.duration_minutes ?? 60),
+    anti_cheat: row.anti_cheat ?? payload.anti_cheat ?? true,
     sections,
     passages,
     questions,
@@ -103,7 +104,7 @@ export async function getLeaderboard(examId: string): Promise<{
     const { data, error } = await supabase
       .from('attempts')
       .select(
-        'id, exam_id, student_name, score, correct_count, total_questions, time_spent_seconds, user_answers, user_id, avatar_url, created_at'
+        'id, exam_id, student_name, score, correct_count, total_questions, time_spent_seconds, violation_count, is_flagged, user_answers, user_id, avatar_url, created_at'
       )
       .eq('exam_id', examId)
       .order('score', { ascending: false })
@@ -138,6 +139,8 @@ export async function submitAttempt(attempt: AttemptRecord): Promise<{
     correct_count: Number(attempt.correct_count ?? 0),
     total_questions: Number(attempt.total_questions ?? 0),
     time_spent_seconds: Number(attempt.time_spent_seconds ?? 0),
+    violation_count: Number(attempt.violation_count ?? 0),
+    is_flagged: Boolean(attempt.is_flagged),
     user_answers: attempt.user_answers ?? {},
     user_id: attempt.user_id ?? null,
     avatar_url: attempt.avatar_url ?? null,
@@ -181,6 +184,7 @@ export async function upsertExam(
       exam_type: normalizeExamType(exam.exam_type),
       section: exam.section ?? 'Tổng hợp',
       duration_minutes: exam.duration_minutes,
+      anti_cheat: exam.anti_cheat ?? true,
       ...(exam.sections && exam.sections.length > 0 ? { sections: exam.sections } : {}),
       passages: exam.passages,
       questions: exam.questions,

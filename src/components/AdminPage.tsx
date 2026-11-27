@@ -148,6 +148,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [examType, setExamType] = useState<ExamType>('TSA');
   const [section, setSection] = useState('Tổng hợp');
   const [durationMinutes, setDurationMinutes] = useState(60);
+  const [antiCheat, setAntiCheat] = useState(true);
   const [sections, setSections] = useState<ExamSection[]>([]);
   const [passages, setPassages] = useState<Passage[]>([]);
   const [questions, setQuestions] = useState<Question[]>([createEmptyQuestion(1)]);
@@ -246,6 +247,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setExamType('TSA');
     setSection('Tổng hợp');
     setDurationMinutes(60);
+    setAntiCheat(true);
     setSections([]);
     setPassages([]);
     setQuestions([createEmptyQuestion(1)]);
@@ -260,6 +262,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setExamType(normalizeExamType(exam.exam_type));
     setSection(exam.section || 'Tổng hợp');
     setDurationMinutes(exam.duration_minutes || 60);
+    setAntiCheat(exam.anti_cheat !== false);
     setSections(exam.sections ?? []);
     setPassages(exam.passages ?? []);
     setQuestions(
@@ -276,6 +279,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       exam_type: normalizeExamType(exam.exam_type),
       section: exam.section ?? 'Tổng hợp',
       duration_minutes: exam.duration_minutes,
+      anti_cheat: exam.anti_cheat !== false,
       ...(exam.sections && exam.sections.length > 0 ? { sections: exam.sections } : {}),
       passages: exam.passages,
       questions: exam.questions,
@@ -356,6 +360,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         sections.length > 0 && totalSectionMinutes > 0
           ? totalSectionMinutes
           : Math.max(5, Number(durationMinutes) || 60),
+      anti_cheat: antiCheat,
       sections: sections.length > 0 ? sections : undefined,
       passages,
       questions,
@@ -1021,6 +1026,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     placeholder="Mô tả nội dung hoặc đối tượng đề thi..."
                     className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
                   />
+                </div>
+
+                <div className="md:col-span-3 pt-1">
+                  <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 px-4 py-3 cursor-pointer">
+                    <div>
+                      <div className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-zinc-200">
+                        Chế độ thi nghiêm túc (Chống chuyển tab, khóa copy & bắt buộc toàn màn hình)
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                        Kích hoạt giám sát 5 lớp và tự động nộp bài nếu vi phạm quá 3 lần.
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={antiCheat}
+                      onChange={(e) => setAntiCheat(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 rounded-full bg-slate-300 dark:bg-zinc-700 peer-checked:bg-[#B91C1C] relative transition-colors shrink-0 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+                  </label>
                 </div>
               </div>
             </section>

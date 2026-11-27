@@ -364,6 +364,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                       <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100 leading-snug line-clamp-2">
                         {exam.title}
                       </h2>
+                      {exam.anti_cheat !== false && (
+                        <div className="mt-2 inline-flex items-center gap-1 rounded-md border border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:text-zinc-400">
+                          <Shield className="w-3 h-3 text-[#B91C1C] dark:text-red-400" />
+                          Giám sát nghiêm túc
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2.5 pt-3 border-t border-slate-100 dark:border-zinc-800/80">

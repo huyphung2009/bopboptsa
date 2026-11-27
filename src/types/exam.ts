@@ -65,6 +65,7 @@ export interface Exam {
   exam_type?: ExamType;
   section?: string;
   duration_minutes: number;
+  anti_cheat?: boolean;
   sections?: ExamSection[];
   passages: Passage[];
   questions: Question[];
@@ -107,6 +108,8 @@ export interface ExamAttemptResult {
   correctCount: number;
   totalQuestions: number;
   timeSpentSeconds: number;
+  violationCount?: number;
+  isFlagged?: boolean;
   sectionResults?: SectionResultSummary[];
   questionResults: Record<string, QuestionResult>;
   answers: UserAnswers;
@@ -121,6 +124,8 @@ export interface AttemptRecord {
   correct_count: number;
   total_questions: number;
   time_spent_seconds: number;
+  violation_count?: number;
+  is_flagged?: boolean;
   user_answers?: UserAnswers | null;
   user_id?: string | null;
   avatar_url?: string | null;
