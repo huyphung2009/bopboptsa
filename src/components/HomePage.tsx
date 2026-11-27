@@ -448,9 +448,22 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* ============================================================
-          EXAM LIBRARY — FROSTED GLASS CARDS, TABS & COMPACT SEARCH
+          TARGET GOAL MILESTONE & EXAM LIBRARY
          ============================================================ */}
       <main className="flex-1">
+        {/* Milestone / Target Goal Block (for logged-in users) */}
+        {user && (
+          <div className="relative mx-auto max-w-[1200px] px-4 sm:px-6 mb-10 sm:mb-14">
+            <TargetGoalWidget
+              userId={user.id}
+              profile={profile}
+              exams={exams}
+              refreshKey={leaderboardRefreshKey}
+              onOpenModal={() => setTargetGoalOpen(true)}
+            />
+          </div>
+        )}
+
         <section id="exam-library" className="relative mx-auto max-w-[1200px] px-4 sm:px-6 pb-20 sm:pb-28 scroll-mt-24">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
@@ -491,19 +504,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               </button>
             </div>
           </div>
-
-          {/* Target Goal & Countdown Widget (for logged-in users) */}
-          {user && (
-            <div className="mb-8">
-              <TargetGoalWidget
-                userId={user.id}
-                profile={profile}
-                exams={exams}
-                refreshKey={leaderboardRefreshKey}
-                onOpenModal={() => setTargetGoalOpen(true)}
-              />
-            </div>
-          )}
 
           {/* Frosted Segmented Section Tabs */}
           <div

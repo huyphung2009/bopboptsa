@@ -103,6 +103,10 @@ export const TargetGoalWidget: React.FC<TargetGoalWidgetProps> = ({
             <Target className="w-5 h-5 text-crimson" />
           </div>
           <div>
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-crimson mb-1">
+              <Target className="w-3.5 h-3.5" />
+              Hành trình tới ước mơ NV1
+            </div>
             <h2 className="text-sm font-semibold text-[#2a161b] dark:text-[#fff2f4]">
               Đặt mục tiêu đại học của bạn để theo dõi tiến độ mỗi ngày
             </h2>
@@ -147,25 +151,29 @@ export const TargetGoalWidget: React.FC<TargetGoalWidgetProps> = ({
           : ''
       }`}
     >
+      <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-[var(--line)]">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-[#ffeff1] dark:bg-[#2e151e] border border-[#dc263e]/25 text-crimson shrink-0">
+            <Target className="w-4 h-4" />
+          </span>
+          <h2 className="text-base sm:text-lg font-semibold tracking-tight text-[#2a161b] dark:text-white truncate">
+            Hành trình tới ước mơ NV1
+          </h2>
+        </div>
+        <span className="rounded-full border border-[var(--line)] bg-white/80 dark:bg-[#241219] px-3 py-0.5 text-[11px] font-mono font-bold text-crimson dark:text-[#fbbac3] shrink-0">
+          {targetType}
+        </span>
+      </div>
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         {/* Left: Target University & Major */}
-        <div className="space-y-2 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#ffeff1] dark:bg-[#2e151e] border border-[#dc263e]/25 px-2.5 py-0.5 text-[11px] font-semibold text-crimson dark:text-[#fbbac3]">
-              <Target className="w-3 h-3" />
-              Chạm tới nguyện vọng
-            </span>
-            <span className="rounded-full border border-[var(--line)] bg-white/80 dark:bg-[#241219] px-2.5 py-0.5 text-[11px] font-mono font-bold text-[#5e4249] dark:text-[#ebc9cf]">
-              {targetType}
-            </span>
-          </div>
-
+        <div className="space-y-1.5 min-w-0">
           <div className="flex items-start gap-2.5">
             <GraduationCap className="w-5 h-5 text-crimson shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <h2 className="text-base sm:text-lg font-semibold text-[#2a161b] dark:text-white truncate">
+              <h3 className="text-base sm:text-lg font-semibold text-[#2a161b] dark:text-white truncate">
                 {profile?.target_university}
-              </h2>
+              </h3>
               <p className="text-xs sm:text-sm text-[#5e4249] dark:text-[#ebc9cf] truncate">
                 Ngành: <span className="font-semibold">{profile?.target_major}</span>
               </p>
