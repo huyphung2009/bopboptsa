@@ -316,7 +316,10 @@ export const ResultView: React.FC<ResultViewProps> = ({
       </main>
 
       <LeaderboardModal
-        exam={showLeaderboard ? exam : null}
+        isOpen={showLeaderboard}
+        exams={[exam]}
+        initialExam={exam}
+        initialTab="exam"
         refreshKey={leaderboardRefreshKey}
         onClose={() => setShowLeaderboard(false)}
       />

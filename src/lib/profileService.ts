@@ -174,6 +174,41 @@ export async function fetchProfilesByIds(
   }
 }
 
+export async function fetchGlobalXpLeaderboard(): Promise<{
+  profiles: UserProfile[];
+  errorMessage?: string;
+}> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, xp, exams_completed, full_name, avatar_url')
+      .order('xp', { ascending: false })
+      .order('exams_completed', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('[fetchGlobalXpLeaderboard] Supabase error:', error);
+      return { profiles: [], errorMessage: error.message };
+    }
+
+    const profiles: UserProfile[] = (data ?? []).map((row) => ({
+      id: row.id,
+      xp: Number(row.xp ?? 0),
+      exams_completed: Number(row.exams_completed ?? 0),
+      full_name: row.full_name,
+      avatar_url: row.avatar_url,
+    }));
+
+    return { profiles };
+  } catch (err) {
+    console.error('[fetchGlobalXpLeaderboard] Unexpected error:', err);
+    return {
+      profiles: [],
+      errorMessage: err instanceof Error ? err.message : 'Lỗi tải bảng xếp hạng XP',
+    };
+  }
+}
+
 export async function checkAdminRole(email: string | null | undefined): Promise<{
   isSuperAdmin: boolean;
   isAdmin: boolean;

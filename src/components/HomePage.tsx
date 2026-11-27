@@ -1,6 +1,7 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
   ArrowRight,
+  Award,
   Clock,
   FileText,
   LogOut,
@@ -19,6 +20,7 @@ import { ExamModeModal } from './ExamModeModal';
 import { LeaderboardModal } from './LeaderboardModal';
 import { Logo } from './Logo';
 import { RankBadge, XpProgressBar } from './RankBadge';
+import { RanksModal } from './RanksModal';
 import { resolveExamSections } from '../utils/examSections';
 
 interface HomePageProps {
@@ -58,7 +60,10 @@ export const HomePage: React.FC<HomePageProps> = ({
   onSignOut,
   leaderboardRefreshKey,
 }) => {
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [leaderboardInitialTab, setLeaderboardInitialTab] = useState<'xp' | 'exam'>('xp');
   const [leaderboardExam, setLeaderboardExam] = useState<Exam | null>(null);
+  const [ranksModalOpen, setRanksModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
   const [modeSelectExam, setModeSelectExam] = useState<Exam | null>(null);
@@ -99,11 +104,36 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* Frosted-Glass Minimalist Header */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-zinc-950/80 border-b border-slate-200/80 dark:border-zinc-800">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Logo className="w-6 h-6 shrink-0 text-slate-900 dark:text-zinc-100" />
-            <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-zinc-100 truncate">
-              Parabol
-            </span>
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <Logo className="w-6 h-6 shrink-0 text-slate-900 dark:text-zinc-100" />
+              <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-zinc-100">
+                Parabol
+              </span>
+            </div>
+
+            <nav className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setLeaderboardExam(null);
+                  setLeaderboardInitialTab('xp');
+                  setLeaderboardOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
+              >
+                <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                <span className="hidden sm:inline">Bảng xếp hạng</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRanksModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
+              >
+                <Award className="w-3.5 h-3.5 text-[#B91C1C] dark:text-red-400" />
+                <span className="hidden sm:inline">Cấp bậc & Danh hiệu</span>
+              </button>
+            </nav>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -131,28 +161,35 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
 
             {user ? (
-              <div className="flex items-center gap-2.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-1.5 pr-2 py-1">
-                {userAvatar ? (
-                  <img
-                    src={userAvatar}
-                    alt={userDisplayName}
-                    className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-red-700 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
-                    {(userDisplayName[0] || 'U').toUpperCase()}
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-1.5 pr-2 py-1">
+                <button
+                  type="button"
+                  onClick={() => setRanksModalOpen(true)}
+                  className="flex items-center gap-2.5 text-left hover:opacity-85 transition-opacity"
+                  title="Xem Hồ sơ Cấp bậc & XP"
+                >
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt={userDisplayName}
+                      className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-red-700 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                      {(userDisplayName[0] || 'U').toUpperCase()}
+                    </div>
+                  )}
+                  <div className="hidden md:flex flex-col min-w-[120px] max-w-[180px] gap-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                        {userDisplayName}
+                      </span>
+                      <RankBadge xp={profile?.xp ?? 0} compact />
+                    </div>
+                    <XpProgressBar xp={profile?.xp ?? 0} showLabel={false} />
                   </div>
-                )}
-                <div className="hidden md:flex flex-col min-w-[120px] max-w-[180px] gap-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate">
-                      {userDisplayName}
-                    </span>
-                    <RankBadge xp={profile?.xp ?? 0} compact />
-                  </div>
-                  <XpProgressBar xp={profile?.xp ?? 0} showLabel={false} />
-                </div>
+                </button>
                 <button
                   onClick={onSignOut}
                   className="rounded-md p-1 text-slate-400 hover:text-red-700 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
@@ -331,7 +368,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                     <div className="flex items-center gap-2.5 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
                       <button
-                        onClick={() => setLeaderboardExam(exam)}
+                        onClick={() => {
+                          setLeaderboardExam(exam);
+                          setLeaderboardInitialTab('exam');
+                          setLeaderboardOpen(true);
+                        }}
                         className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
                       >
                         <Trophy className="w-3.5 h-3.5 text-slate-400" />
@@ -359,9 +400,24 @@ export const HomePage: React.FC<HomePageProps> = ({
       </footer>
 
       <LeaderboardModal
-        exam={leaderboardExam}
+        isOpen={leaderboardOpen}
+        exams={exams}
+        initialExam={leaderboardExam}
+        initialTab={leaderboardInitialTab}
+        currentUserId={user?.id}
         refreshKey={leaderboardRefreshKey}
-        onClose={() => setLeaderboardExam(null)}
+        onClose={() => setLeaderboardOpen(false)}
+      />
+
+      <RanksModal
+        isOpen={ranksModalOpen}
+        user={user}
+        profile={profile}
+        onClose={() => setRanksModalOpen(false)}
+        onOpenAuth={() => {
+          setPendingExam(null);
+          setAuthModalOpen(true);
+        }}
       />
 
       <AuthModal
