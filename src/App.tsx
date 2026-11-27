@@ -7,6 +7,7 @@ import { ExamRoom } from './components/ExamRoom';
 import { HomePage } from './components/HomePage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { MascotCompanion } from './components/MascotCompanion';
+import { OmikujiModal } from './components/OmikujiModal';
 import { ResultView, type XpAwardSummary } from './components/ResultView';
 import { WrongNotebookModal } from './components/WrongNotebookModal';
 import { evaluateAndUnlockAchievements } from './lib/achievementService';
@@ -62,6 +63,7 @@ export function App() {
   const [globalAuthNotice, setGlobalAuthNotice] = useState<string | null>(null);
   const [unlockedToasts, setUnlockedToasts] = useState<AchievementDefinition[]>([]);
   const [wrongBookOpen, setWrongBookOpen] = useState(false);
+  const [omikujiOpen, setOmikujiOpen] = useState(false);
 
   // Enforce crisp light theme
   useEffect(() => {
@@ -325,6 +327,12 @@ export function App() {
           view="exam"
           isWrongBookOpen={wrongBookOpen}
           onOpenWrongBook={() => setWrongBookOpen(true)}
+          onOpenOmikuji={() => setOmikujiOpen(true)}
+        />
+        <OmikujiModal
+          isOpen={omikujiOpen}
+          onClose={() => setOmikujiOpen(false)}
+          proceedLabel="Nhận vía & Tiếp tục làm bài"
         />
       </>
     );
@@ -378,6 +386,15 @@ export function App() {
           latestScore={attemptResult.score100}
           isWrongBookOpen={wrongBookOpen}
           onOpenWrongBook={() => setWrongBookOpen(true)}
+          onOpenOmikuji={() => setOmikujiOpen(true)}
+        />
+        <OmikujiModal
+          isOpen={omikujiOpen}
+          onClose={() => setOmikujiOpen(false)}
+          onProceedToExam={() => {
+            setOmikujiOpen(false);
+            handleStartExam(activeExam, activeSectionId, examMode);
+          }}
         />
       </>
     );
@@ -429,6 +446,15 @@ export function App() {
         view="home"
         isWrongBookOpen={wrongBookOpen}
         onOpenWrongBook={() => setWrongBookOpen(true)}
+        onOpenOmikuji={() => setOmikujiOpen(true)}
+      />
+      <OmikujiModal
+        isOpen={omikujiOpen}
+        onClose={() => setOmikujiOpen(false)}
+        onProceedToExam={() => {
+          setOmikujiOpen(false);
+          document.getElementById('exam-library')?.scrollIntoView({ behavior: 'smooth' });
+        }}
       />
     </>
   );

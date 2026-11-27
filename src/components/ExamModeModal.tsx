@@ -11,6 +11,7 @@ import {
 import React, { useState } from 'react';
 import type { Exam } from '../types/exam';
 import { resolveExamSections } from '../utils/examSections';
+import { OmikujiModal } from './OmikujiModal';
 
 interface ExamModeModalProps {
   exam: Exam | null;
@@ -26,6 +27,7 @@ export const ExamModeModal: React.FC<ExamModeModalProps> = ({
   onStartSection,
 }) => {
   const [selectedMode, setSelectedMode] = useState<'exam' | 'practice'>('exam');
+  const [omikujiOpen, setOmikujiOpen] = useState(false);
 
   if (!exam) return null;
 
@@ -134,14 +136,23 @@ export const ExamModeModal: React.FC<ExamModeModalProps> = ({
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={() => onStartFullExam(exam, selectedMode)}
-              className="btn btn-crimson w-full !py-2.5"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              {isPractice ? 'Bắt đầu Luyện tập' : 'Bắt đầu Thi thử'}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <button
+                type="button"
+                onClick={() => onStartFullExam(exam, selectedMode)}
+                className="btn btn-crimson flex-1 !py-2.5"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                {isPractice ? 'Bắt đầu Luyện tập' : 'Bắt đầu Thi thử'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOmikujiOpen(true)}
+                className="btn btn-pill !py-2.5 !px-4 border-amber-300 bg-amber-50/90 text-amber-900 hover:bg-amber-100 font-semibold text-xs shrink-0"
+              >
+                🎋 Xin vía đỗ NV1
+              </button>
+            </div>
           </div>
 
           {/* Single Section Practice / Exam */}
@@ -184,6 +195,15 @@ export const ExamModeModal: React.FC<ExamModeModalProps> = ({
           )}
         </div>
       </div>
+
+      <OmikujiModal
+        isOpen={omikujiOpen}
+        onClose={() => setOmikujiOpen(false)}
+        onProceedToExam={() => {
+          setOmikujiOpen(false);
+          onStartFullExam(exam, selectedMode);
+        }}
+      />
     </div>
   );
 };

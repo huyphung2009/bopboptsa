@@ -1,11 +1,12 @@
 import { BookOpen, EyeOff, Lightbulb, Sparkles, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface MascotCompanionProps {
   view: 'home' | 'exam' | 'result' | 'admin';
   latestScore?: number | null;
   isWrongBookOpen?: boolean;
   onOpenWrongBook: () => void;
+  onOpenOmikuji: () => void;
 }
 
 const HOME_DIALOGUES = [
@@ -17,6 +18,17 @@ const HOME_DIALOGUES = [
 
 const NIGHT_OWL_DIALOGUE =
   'Cú đêm thế? Cày nốt đề này rồi đi ngủ, giữ sức khỏe mà thi chứ!';
+
+const IDLE_DIALOGUES = [
+  'Zzz... Ngủ gật rồi à? Dậy làm đề TSA đi!',
+  'Màn hình sắp tắt rồi kìa, tư duy tiếp đi chứ!',
+];
+
+const ANNOYED_DIALOGUES = [
+  'Chọc gì lắm thế! Lo mà cày đề TSA đi! 😤',
+  'Bấm nữa là trừ điểm nhân phẩm đấy nhé, vào làm bài ngay!',
+  'Tư duy thật chưa mà rảnh ngồi chọc tớ thế hả? 👀',
+];
 
 const EXAM_TIPS = [
   'Mẹo TSA: Câu nào đọc 30 giây chưa ra hướng thì gắn cờ vàng rồi làm tiếp câu dễ để ăn chắc điểm!',
@@ -42,15 +54,27 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
   latestScore = null,
   isWrongBookOpen = false,
   onOpenWrongBook,
+  onOpenOmikuji,
 }) => {
   const [minimized, setMinimized] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bubbleVisible, setBubbleVisible] = useState(true);
   const [dialogue, setDialogue] = useState<string>(() => pickHomeDialogue());
+  const [isIdle, setIsIdle] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+
+  const clickTimestampsRef = useRef<number[]>([]);
+  const idleTimerRef = useRef<number | null>(null);
+  const isIdleRef = useRef(false);
+
+  useEffect(() => {
+    isIdleRef.current = isIdle;
+  }, [isIdle]);
 
   // Sync contextual dialogue when view / score / wrong-book state changes
   useEffect(() => {
     setMenuOpen(false);
+    setIsIdle(false);
 
     if (isWrongBookOpen) {
       setBubbleVisible(true);
@@ -59,7 +83,6 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
     }
 
     if (view === 'exam') {
-      // Hide speech bubble by default in Exam Room so user can focus
       setBubbleVisible(false);
       setDialogue('Tập trung cao độ! Đừng để dính bẫy câu này nha...');
       return;
@@ -83,12 +106,81 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
       return;
     }
 
-    // Home / Dashboard or Admin
     setBubbleVisible(true);
     setDialogue(pickHomeDialogue());
   }, [view, latestScore, isWrongBookOpen]);
 
+  // 60-second idle detection on Home / Dashboard
+  useEffect(() => {
+    if (view !== 'home' || minimized || isWrongBookOpen) {
+      if (idleTimerRef.current) {
+        window.clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+      return;
+    }
+
+    const scheduleIdle = () => {
+      if (idleTimerRef.current) {
+        window.clearTimeout(idleTimerRef.current);
+      }
+      idleTimerRef.current = window.setTimeout(() => {
+        setIsIdle(true);
+        setBubbleVisible(true);
+        setDialogue(
+          IDLE_DIALOGUES[Math.floor(Math.random() * IDLE_DIALOGUES.length)]
+        );
+      }, 60000);
+    };
+
+    const handleActivity = () => {
+      if (isIdleRef.current) {
+        setIsIdle(false);
+        setDialogue(pickHomeDialogue());
+      }
+      scheduleIdle();
+    };
+
+    scheduleIdle();
+    window.addEventListener('mousemove', handleActivity, { passive: true });
+    window.addEventListener('mousedown', handleActivity, { passive: true });
+    window.addEventListener('keydown', handleActivity, { passive: true });
+    window.addEventListener('scroll', handleActivity, { passive: true });
+    window.addEventListener('touchstart', handleActivity, { passive: true });
+
+    return () => {
+      if (idleTimerRef.current) {
+        window.clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('mousedown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
+  }, [view, minimized, isWrongBookOpen]);
+
   const handleMascotClick = () => {
+    const now = Date.now();
+    const recent = clickTimestampsRef.current.filter((ts) => now - ts <= 3000);
+    recent.push(now);
+    clickTimestampsRef.current = recent;
+
+    // Easter Egg: 5 consecutive clicks within 3 seconds
+    if (recent.length >= 5) {
+      clickTimestampsRef.current = [];
+      setMenuOpen(false);
+      setIsIdle(false);
+      setIsShaking(true);
+      setBubbleVisible(true);
+      setDialogue(
+        ANNOYED_DIALOGUES[Math.floor(Math.random() * ANNOYED_DIALOGUES.length)]
+      );
+      window.setTimeout(() => setIsShaking(false), 650);
+      return;
+    }
+
     if (view === 'exam' && !bubbleVisible) {
       setBubbleVisible(true);
       setDialogue('Tập trung cao độ! Đừng để dính bẫy câu này nha...');
@@ -131,9 +223,34 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 select-none">
+      <style>{`
+        @keyframes mascotBreathe {
+          0%, 100% { transform: translateY(0) scaleY(1); }
+          50% { transform: translateY(-4px) scaleY(1.02); }
+        }
+        @keyframes mascotShake {
+          0%, 100% { transform: translateX(0) rotate(0deg); }
+          20% { transform: translateX(-6px) rotate(-5deg); }
+          40% { transform: translateX(6px) rotate(5deg); }
+          60% { transform: translateX(-5px) rotate(-4deg); }
+          80% { transform: translateX(5px) rotate(4deg); }
+        }
+      `}</style>
+
       {/* Quick Action Tooltip Menu */}
       {menuOpen && (
         <div className="w-56 rounded-2xl border border-crimson/25 bg-white/95 backdrop-blur-xl shadow-[0_18px_42px_-12px_rgba(38,17,24,0.28)] p-1.5 space-y-1 animate-[fadeInUp_0.2s_ease-out]">
+          <button
+            type="button"
+            onClick={() => {
+              setMenuOpen(false);
+              onOpenOmikuji();
+            }}
+            className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-[#2a161b] hover:bg-amber-50 hover:text-crimson transition-colors cursor-pointer"
+          >
+            <span className="text-sm leading-none shrink-0">🎋</span>
+            <span>Xin vía đỗ NV1</span>
+          </button>
           <button
             type="button"
             onClick={handleShowTip}
@@ -184,7 +301,6 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
             <X className="w-3 h-3" />
           </button>
           <p>{dialogue}</p>
-          {/* Speech bubble tail */}
           <span
             className="absolute -bottom-1.5 right-10 w-3 h-3 rotate-45 bg-white border-r border-b border-crimson/35"
             aria-hidden="true"
@@ -198,8 +314,14 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
         onClick={handleMascotClick}
         className="group relative flex items-center justify-center w-[104px] h-[104px] sm:w-[110px] sm:h-[110px] cursor-pointer focus:outline-none"
         aria-label="Trợ lý Parabol-chan"
+        style={
+          isShaking
+            ? { animation: 'mascotShake 0.45s ease-in-out' }
+            : isIdle
+              ? { animation: 'mascotBreathe 3.2s ease-in-out infinite' }
+              : undefined
+        }
       >
-        {/* Subtle sparkles behind mascot on hover */}
         <Sparkles
           className="absolute -top-1 left-1 w-4 h-4 text-amber-400 opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 pointer-events-none"
           aria-hidden="true"
