@@ -28,7 +28,6 @@ import {
 import React, { useCallback, useEffect, useState } from 'react';
 import { deleteExam, fetchExams, upsertExam } from '../lib/examService';
 import { extractExamFromPdf } from '../lib/pdfExamImporter';
-import { getExamFormat } from '../config/examFormats';
 import {
   addAppAdmin,
   fetchAppAdmins,
@@ -36,8 +35,9 @@ import {
   SUPER_ADMIN_EMAIL,
   type AppAdminRecord,
 } from '../lib/profileService';
-import type { Exam, ExamSection, ExamType, Passage, Question } from '../types/exam';
-import { EXAM_TYPES, getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
+import type { Exam, ExamSection, Passage, Question } from '../types/exam';
+import { getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
+import { CloudBackdrop } from './CloudBackdrop';
 import { Logo } from './Logo';
 import { MathText } from './MathText';
 import { QuestionEditorCard } from './QuestionEditorCard';
@@ -146,7 +146,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [examType, setExamType] = useState<ExamType>('TSA');
+  const examType = 'TSA' as const;
   const [section, setSection] = useState('Tổng hợp');
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [antiCheat, setAntiCheat] = useState(true);
@@ -245,7 +245,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setEditingId(undefined);
     setTitle('');
     setDescription('');
-    setExamType('TSA');
     setSection('Tổng hợp');
     setDurationMinutes(60);
     setAntiCheat(true);
@@ -260,7 +259,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setEditingId(exam.is_sample ? undefined : exam.id);
     setTitle(exam.title);
     setDescription(exam.description);
-    setExamType(normalizeExamType(exam.exam_type));
     setSection(exam.section || 'Tổng hợp');
     setDurationMinutes(exam.duration_minutes || 60);
     setAntiCheat(exam.anti_cheat !== false);
@@ -408,7 +406,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
       setTitle(extracted.title ?? '');
       setDescription(extracted.description ?? '');
-      setExamType(normalizeExamType(extracted.exam_type ?? examType));
       setSection(extracted.section ?? 'Tổng hợp');
       setDurationMinutes(Number(extracted.duration_minutes ?? 60));
       setSections(extracted.sections ?? []);
@@ -454,7 +451,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
     setTitle(parsed.title);
     setDescription(parsed.description ?? '');
-    setExamType(normalizeExamType(parsed.exam_type));
     setSection(parsed.section ?? 'Tổng hợp');
     setDurationMinutes(Number(parsed.duration_minutes ?? 60));
     setSections(Array.isArray(parsed.sections) ? parsed.sections : []);
@@ -470,25 +466,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   if (!unlocked) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] dark:bg-zinc-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 p-6 shadow-xs">
+      <div className="relative min-h-screen bg-white dark:bg-[#13090d] flex items-center justify-center p-4 overflow-hidden">
+        <CloudBackdrop withBottomFade={false} subtle />
+        <div className="relative glass-card w-full max-w-sm rounded-[26px] p-6">
           <button
             onClick={onBackHome}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 mb-5"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#876870] dark:text-[#c49ba3] hover:text-crimson mb-5 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Quay lại
           </button>
 
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-[#ffeff1] dark:bg-[#dc263e]/20 border border-[#dc263e]/25 text-crimson dark:text-[#fbbac3] flex items-center justify-center">
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-slate-900 dark:text-zinc-100">
+              <h1 className="text-base font-semibold text-[#2a161b] dark:text-white">
                 Quản trị viên
               </h1>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
+              <p className="text-xs text-[#876870] dark:text-[#c49ba3]">
                 Nhập mật khẩu quản trị (hoặc dùng email Admin)
               </p>
             </div>
@@ -502,10 +499,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mật khẩu..."
                 autoFocus
-                className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                className="w-full rounded-full border border-[var(--line)] bg-white dark:bg-[#190c11] px-4 py-2.5 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:ring-2 focus:ring-crimson/15 focus:outline-none"
               />
               {authError && (
-                <p className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                <p className="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">
                   {authError}
                 </p>
               )}
@@ -513,7 +510,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
             <button
               type="submit"
-              className="w-full rounded-lg bg-red-700 hover:bg-red-800 py-2 text-xs font-semibold text-white transition-colors"
+              className="btn btn-crimson w-full !py-2.5"
             >
               Mở khóa trang Quản trị
             </button>
@@ -524,26 +521,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-20 backdrop-blur-md bg-white/80 dark:bg-zinc-950/80 border-b border-slate-200/80 dark:border-zinc-800">
+    <div className="min-h-screen bg-[#fff7f8] dark:bg-[#13090d] text-[#2a161b] dark:text-[#fff2f4] pb-20">
+      {/* Frosted Header */}
+      <header className="sticky top-0 z-20 backdrop-blur-xl bg-white/80 dark:bg-[#190c11]/85 border-b border-[var(--line)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <Logo className="w-5 h-5 shrink-0 text-slate-900 dark:text-zinc-100" />
-            <h1 className="text-sm sm:text-base font-bold truncate">
+            <Logo className="w-6 h-6 shrink-0 text-[#2a161b] dark:text-[#fbbac3]" />
+            <h1 className="text-sm sm:text-base font-semibold tracking-tight text-crimson truncate">
               Quản trị Parabol
             </h1>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:flex rounded-lg bg-slate-100 dark:bg-zinc-800 p-0.5">
+            <div className="hidden sm:flex rounded-full bg-[#ffeff1]/80 dark:bg-[#241219] border border-[var(--line)] p-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('repo')}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'repo'
-                    ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 shadow-xs'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+                    ? 'bg-crimson text-white shadow-xs'
+                    : 'text-[#5e4249] dark:text-[#ebc9cf] hover:text-crimson'
                 }`}
               >
                 <FolderOpen className="w-3.5 h-3.5" />
@@ -552,10 +549,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('editor')}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'editor'
-                    ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 shadow-xs'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+                    ? 'bg-crimson text-white shadow-xs'
+                    : 'text-[#5e4249] dark:text-[#ebc9cf] hover:text-crimson'
                 }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
@@ -565,10 +562,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTab('admins')}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
                     activeTab === 'admins'
-                      ? 'bg-white dark:bg-zinc-900 text-red-700 dark:text-red-400 shadow-xs'
-                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+                      ? 'bg-crimson text-white shadow-xs'
+                      : 'text-[#5e4249] dark:text-[#ebc9cf] hover:text-crimson'
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
@@ -579,9 +576,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
             <button
               onClick={onBackHome}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
+              className="btn btn-pill btn-sm"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-3.5 h-3.5 text-crimson" />
               Trang chủ
             </button>
           </div>
@@ -589,7 +586,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
         {/* Mobile Tabs */}
         <div
-          className={`sm:hidden grid border-t border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 ${
+          className={`sm:hidden grid border-t border-[var(--line)] bg-white/90 dark:bg-[#190c11] ${
             isSuperAdmin ? 'grid-cols-3' : 'grid-cols-2'
           }`}
         >
@@ -598,8 +595,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             onClick={() => setActiveTab('repo')}
             className={`py-2.5 text-xs font-semibold border-b-2 ${
               activeTab === 'repo'
-                ? 'border-red-700 text-red-700 dark:text-red-400'
-                : 'border-transparent text-slate-500'
+                ? 'border-crimson text-crimson dark:text-[#fbbac3]'
+                : 'border-transparent text-[#876870]'
             }`}
           >
             Kho đề ({repoExams.length})
@@ -609,8 +606,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             onClick={() => setActiveTab('editor')}
             className={`py-2.5 text-xs font-semibold border-b-2 ${
               activeTab === 'editor'
-                ? 'border-red-700 text-red-700 dark:text-red-400'
-                : 'border-transparent text-slate-500'
+                ? 'border-crimson text-crimson dark:text-[#fbbac3]'
+                : 'border-transparent text-[#876870]'
             }`}
           >
             {editingId ? 'Sửa đề' : 'Tạo đề mới'}
@@ -621,8 +618,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               onClick={() => setActiveTab('admins')}
               className={`py-2.5 text-xs font-semibold border-b-2 ${
                 activeTab === 'admins'
-                  ? 'border-red-700 text-red-700 dark:text-red-400'
-                  : 'border-transparent text-slate-500'
+                  ? 'border-crimson text-crimson dark:text-[#fbbac3]'
+                  : 'border-transparent text-[#876870]'
               }`}
             >
               Quản lý QTV
@@ -637,10 +634,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100">
+                <h2 className="text-lg sm:text-xl font-medium text-[#2a161b] dark:text-white">
                   Danh sách đề thi trên Supabase
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                <p className="text-xs text-[#876870] dark:text-[#c49ba3] mt-0.5">
                   Quản lý, chỉnh sửa trực quan hoặc xuất bản sao lưu JSON.
                 </p>
               </div>
@@ -650,15 +647,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   type="button"
                   onClick={loadRepo}
                   disabled={loadingRepo}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50"
+                  className="btn btn-pill btn-sm"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${loadingRepo ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`w-3.5 h-3.5 text-crimson ${loadingRepo ? 'animate-spin' : ''}`} />
                   Làm mới
                 </button>
                 <button
                   type="button"
                   onClick={resetEditorToNew}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-800 px-3.5 py-2 text-xs font-semibold text-white transition-colors"
+                  className="btn btn-crimson btn-sm"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Tạo đề mới
@@ -667,7 +664,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             </div>
 
             {fromFallback && (
-              <div className="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/30 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
+              <div className="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
                 Bảng <code>exams</code> trên Supabase đang trống — đang hiển thị đề mẫu mặc định. Bạn có thể bấm <strong>Sửa đề</strong> để tùy chỉnh và lưu thành đề mới trên Supabase.
               </div>
             )}
@@ -678,34 +675,34 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 return (
                   <div
                     key={exam.id}
-                    className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="lift-card glass-card rounded-[22px] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
-                    <div className="min-w-0 space-y-1">
+                    <div className="min-w-0 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`rounded-md border px-2 py-0.5 text-[11px] font-bold ${typeMeta.badgeClass}`}
+                          className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${typeMeta.badgeClass}`}
                         >
                           {typeMeta.shortLabel}
                         </span>
-                        <span className="rounded-md border border-slate-200/80 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:text-zinc-300">
+                        <span className="rounded-full border border-[var(--line)] bg-white/80 dark:bg-[#241219] px-2.5 py-0.5 text-[11px] font-medium text-[#5e4249] dark:text-[#ebc9cf]">
                           {exam.section || 'Tổng hợp'}
                         </span>
                         {exam.is_sample && (
-                          <span className="rounded-md bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                          <span className="rounded-full bg-amber-100 dark:bg-amber-950/60 px-2.5 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
                             Đề mẫu
                           </span>
                         )}
                       </div>
-                      <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-zinc-100 truncate">
+                      <h3 className="text-sm sm:text-base font-medium text-[#2a161b] dark:text-white truncate">
                         {exam.title}
                       </h3>
-                      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-zinc-400">
+                      <div className="flex items-center gap-4 text-xs text-[#876870] dark:text-[#c49ba3] font-mono">
                         <span className="inline-flex items-center gap-1">
-                          <FileText className="w-3.5 h-3.5" />
+                          <FileText className="w-3.5 h-3.5 text-crimson" />
                           {exam.questions.length} câu hỏi
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
+                          <Clock className="w-3.5 h-3.5 text-crimson" />
                           {exam.duration_minutes} phút
                         </span>
                       </div>
@@ -715,24 +712,24 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       <button
                         type="button"
                         onClick={() => handleEditExam(exam)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                        className="btn btn-pill btn-sm"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
+                        <Edit3 className="w-3.5 h-3.5 text-crimson" />
                         Sửa đề
                       </button>
                       <button
                         type="button"
                         onClick={() => handleExportJson(exam)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                        className="btn btn-pill btn-sm"
                       >
-                        <Download className="w-3.5 h-3.5" />
+                        <Download className="w-3.5 h-3.5 text-[#876870]" />
                         Xuất JSON
                       </button>
                       {!exam.is_sample && (
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(exam)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-200/80 dark:border-red-900/70 bg-red-50/60 dark:bg-red-950/30 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 dark:border-rose-900/70 bg-rose-50/80 dark:bg-rose-950/30 px-3.5 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60 cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           Xóa
@@ -752,11 +749,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             {/* Top Action Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100">
+                <h2 className="text-lg sm:text-xl font-medium text-[#2a161b] dark:text-white">
                   {editingId ? 'Chỉnh sửa đề thi' : 'Soạn đề thi mới (Trực quan)'}
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                  Điền form trực quan, xem trước KaTeX trực tiếp và lưu thẳng lên Supabase.
+                <p className="text-xs text-[#876870] dark:text-[#c49ba3] mt-0.5">
+                  Điền form trực quan, xem trước LaTeX trực tiếp và lưu thẳng lên Supabase.
                 </p>
               </div>
 
@@ -767,9 +764,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     setJsonError(null);
                     setJsonModalOpen(true);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                  className="btn btn-pill btn-sm"
                 >
-                  <FileCode2 className="w-3.5 h-3.5" />
+                  <FileCode2 className="w-3.5 h-3.5 text-crimson" />
                   Import từ JSON
                 </button>
 
@@ -777,7 +774,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   type="button"
                   onClick={handleSaveExam}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition-colors"
+                  className="btn btn-crimson btn-sm"
                 >
                   <Save className="w-3.5 h-3.5" />
                   {saving ? 'Đang lưu...' : 'Lưu đề lên hệ thống'}
@@ -787,10 +784,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
             {statusBanner && (
               <div
-                className={`rounded-xl border p-3.5 text-xs sm:text-sm font-medium flex items-center gap-2.5 ${
+                className={`rounded-2xl border p-3.5 text-xs sm:text-sm font-medium flex items-center gap-2.5 ${
                   statusBanner.type === 'success'
                     ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300'
-                    : 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900 text-red-800 dark:text-red-300'
+                    : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300'
                 }`}
               >
                 {statusBanner.type === 'success' ? (
@@ -803,11 +800,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             )}
 
             {/* AI PDF-to-Exam Importer Card */}
-            <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
+            <section className="glass-card rounded-[24px] p-5 sm:p-6 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#B91C1C] dark:text-red-500" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                  <Sparkles className="w-4 h-4 text-crimson" />
+                  <h3 className="text-sm font-semibold text-[#2a161b] dark:text-white">
                     Nhập nhanh từ file PDF đề thi (Gemini AI)
                   </h3>
                 </div>
@@ -815,7 +812,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   href="https://aistudio.google.com/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-[#B91C1C] dark:hover:text-red-400 transition-colors"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-crimson hover:underline transition-colors"
                 >
                   Lấy Gemini API Key miễn phí
                   <ExternalLink className="w-3 h-3" />
@@ -825,11 +822,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* Gemini API Key Input */}
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
                     Gemini API Key (lưu tại trình duyệt)
                   </label>
                   <div className="relative">
-                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <KeyRound className="w-4 h-4 text-[#876870] absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type={showApiKey ? 'text' : 'password'}
                       value={geminiApiKey}
@@ -839,12 +836,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                         localStorage.setItem(GEMINI_KEY_STORAGE, val);
                       }}
                       placeholder="AIzaSy..."
-                      className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 pl-9 pr-9 py-2 text-xs sm:text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                      className="w-full rounded-full border border-[var(--line)] bg-white dark:bg-[#190c11] pl-10 pr-10 py-2 text-xs sm:text-sm font-mono text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowApiKey((v) => !v)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#876870] hover:text-crimson cursor-pointer"
                       aria-label={showApiKey ? 'Ẩn API Key' : 'Hiện API Key'}
                     >
                       {showApiKey ? (
@@ -858,20 +855,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
                 {/* Target Exam Type */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
                     Kỳ thi mục tiêu
                   </label>
-                  <select
-                    value={examType}
-                    onChange={(e) => setExamType(e.target.value as ExamType)}
-                    className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
-                  >
-                    {EXAM_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full rounded-full border border-[#dc263e]/30 bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 px-4 py-2 text-xs sm:text-sm font-semibold text-[#b91c30] dark:text-[#fbbac3]">
+                    TSA (Đánh giá tư duy Bách Khoa)
+                  </div>
                 </div>
               </div>
 
@@ -888,10 +877,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   const dropped = e.dataTransfer.files?.[0];
                   if (dropped) setPdfFile(dropped);
                 }}
-                className={`flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-dashed p-4 cursor-pointer transition-colors ${
+                className={`flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-dashed p-4 cursor-pointer transition-colors ${
                   isDraggingPdf
-                    ? 'border-[#B91C1C] bg-red-50/40 dark:bg-red-950/20'
-                    : 'border-slate-300 dark:border-zinc-700 bg-[#FAFAFA] dark:bg-zinc-950 hover:border-slate-400 dark:hover:border-zinc-600'
+                    ? 'border-crimson bg-[#ffeff1]/75 dark:bg-[#dc263e]/20'
+                    : 'border-[#ef6c7e]/70 dark:border-[#ef6c7e]/35 bg-[#fff6f7]/80 dark:bg-[#190c11]/70 hover:border-crimson'
                 }`}
               >
                 <input
@@ -904,17 +893,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   }}
                 />
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 flex items-center justify-center shrink-0">
-                    <FileUp className="w-4 h-4 text-[#B91C1C] dark:text-red-500" />
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#241219] border border-[var(--line)] flex items-center justify-center shrink-0">
+                    <FileUp className="w-4 h-4 text-crimson" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-zinc-200 truncate">
+                    <p className="text-xs sm:text-sm font-medium text-[#2a161b] dark:text-[#fff2f4] truncate">
                       {pdfFile
                         ? `${pdfFile.name} (${(pdfFile.size / (1024 * 1024)).toFixed(2)} MB)`
                         : 'Kéo thả hoặc bấm để chọn file đề thi (.pdf, tối đa 20MB)'}
                     </p>
-                    <p className="text-[11px] text-slate-400 dark:text-zinc-500">
-                      Hỗ trợ đề Toán, Lý, Hóa, Sinh, Đọc hiểu với công thức KaTeX và bảng đáp án
+                    <p className="text-[11px] text-[#876870] dark:text-[#b88c95]">
+                      Hỗ trợ đề Toán, Lý, Hóa, Sinh, Đọc hiểu với công thức LaTeX và bảng đáp án
                     </p>
                   </div>
                 </div>
@@ -926,7 +915,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     void handleExtractPdf();
                   }}
                   disabled={extractingPdf || !pdfFile}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition-colors shrink-0"
+                  className="btn btn-crimson btn-sm shrink-0"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   {extractingPdf ? 'Đang bóc tách...' : 'Bóc tách đề từ PDF'}
@@ -935,28 +924,28 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
               {extractingPdf && (
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-zinc-400">
-                    <span>AI đang đọc công thức & bóc tách câu hỏi từ PDF...</span>
-                    <span className="font-mono text-[#B91C1C] dark:text-red-400">
+                  <div className="flex items-center justify-between text-xs font-medium text-[#5e4249] dark:text-[#ebc9cf]">
+                    <span>AI đang đọc công thức &amp; bóc tách câu hỏi từ PDF...</span>
+                    <span className="font-mono text-crimson dark:text-[#fbbac3]">
                       gemini-2.5-flash
                     </span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
-                    <div className="h-full w-2/3 rounded-full bg-[#B91C1C] animate-pulse" />
+                  <div className="h-1.5 w-full rounded-full bg-[#ffeff1] dark:bg-[#241219] overflow-hidden">
+                    <div className="h-full w-2/3 rounded-full bg-crimson animate-pulse" />
                   </div>
                 </div>
               )}
             </section>
 
             {/* General Info Card */}
-            <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+            <section className="glass-card rounded-[24px] p-5 sm:p-6 space-y-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-crimson">
                 1. Thông tin chung
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-3">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
                     Tên đề thi *
                   </label>
                   <input
@@ -964,35 +953,27 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="VD: Đề thi thử TSA HUST #02 — Tư duy Toán học & Khoa học"
-                    className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm font-medium text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                    className="w-full rounded-2xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-4 py-2 text-sm font-medium text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:ring-2 focus:ring-crimson/15 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
                     Kỳ thi
                   </label>
-                  <select
-                    value={examType}
-                    onChange={(e) => setExamType(e.target.value as ExamType)}
-                    className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
-                  >
-                    {EXAM_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full rounded-2xl border border-[#dc263e]/30 bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 px-3.5 py-2 text-sm font-semibold text-[#b91c30] dark:text-[#fbbac3]">
+                    TSA (Bách Khoa)
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
                     Phân môn
                   </label>
                   <select
                     value={section}
                     onChange={(e) => setSection(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                    className="w-full rounded-2xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                   >
                     {EXAM_SECTIONS.map((s) => (
                       <option key={s} value={s}>
@@ -1003,7 +984,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
                     Thời gian làm bài (phút)
                   </label>
                   <input
@@ -1012,12 +993,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     max={300}
                     value={durationMinutes}
                     onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                    className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                    className="w-full rounded-2xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-2 text-sm font-mono text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                   />
                 </div>
 
                 <div className="md:col-span-3">
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
                     Mô tả ngắn
                   </label>
                   <input
@@ -1025,17 +1006,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Mô tả nội dung hoặc đối tượng đề thi..."
-                    className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                    className="w-full rounded-2xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-4 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                   />
                 </div>
 
                 <div className="md:col-span-3 pt-1">
-                  <label className="flex items-center justify-between gap-3 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 px-4 py-3 cursor-pointer">
+                  <label className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[#fff6f7]/80 dark:bg-[#241219]/65 px-4 py-3 cursor-pointer">
                     <div>
-                      <div className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-zinc-200">
-                        Chế độ thi nghiêm túc (Chống chuyển tab, khóa copy & bắt buộc toàn màn hình)
+                      <div className="text-xs sm:text-sm font-semibold text-[#2a161b] dark:text-[#fff2f4]">
+                        Chế độ thi nghiêm túc (Chống chuyển tab, khóa copy &amp; bắt buộc toàn màn hình)
                       </div>
-                      <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                      <div className="text-[11px] text-[#876870] dark:text-[#c49ba3] mt-0.5">
                         Kích hoạt giám sát 5 lớp và tự động nộp bài nếu vi phạm quá 3 lần.
                       </div>
                     </div>
@@ -1045,77 +1026,55 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       onChange={(e) => setAntiCheat(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-5 rounded-full bg-slate-300 dark:bg-zinc-700 peer-checked:bg-[#B91C1C] relative transition-colors shrink-0 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+                    <div className="w-10 h-5 rounded-full bg-[#ebc2c8] dark:bg-[#381823] peer-checked:bg-crimson relative transition-colors shrink-0 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
                   </label>
                 </div>
               </div>
             </section>
 
-            {/* Sections Manager (Multi-section timing) */}
-            <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            {/* Sections Manager */}
+            <section className="glass-card rounded-[24px] p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                    2. Cấu trúc Phần thi & Thang điểm riêng ({examType})
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-crimson">
+                    2. Cấu trúc Phần thi &amp; Thời gian riêng (tùy chọn cho đề tổng hợp)
                   </h3>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const fmt = getExamFormat(examType);
-                      setSections(
-                        fmt.sections.map((s) => ({
-                          id: s.id,
-                          title: s.title,
-                          duration_minutes: s.duration_minutes,
-                          max_score: s.max_score,
-                        }))
-                      );
-                      setDurationMinutes(fmt.totalDurationMinutes);
-                    }}
-                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 dark:border-red-900/70 bg-red-50/70 dark:bg-red-950/30 px-3 py-1.5 text-xs font-semibold text-[#B91C1C] dark:text-red-400 hover:bg-red-100/70 transition-colors"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Áp dụng khung phần thi chuẩn của kỳ thi này
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      let idx = sections.length + 1;
-                      while (sections.some((s) => s.id === `sec-${idx}`)) {
-                        idx += 1;
-                      }
-                      setSections((prev) => [
-                        ...prev,
-                        {
-                          id: `sec-${idx}`,
-                          title: `Phần ${idx}`,
-                          duration_minutes: 30,
-                          max_score: 50,
-                        },
-                      ]);
-                    }}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Thêm phần thi
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    let idx = sections.length + 1;
+                    while (sections.some((s) => s.id === `sec-${idx}`)) {
+                      idx += 1;
+                    }
+                    setSections((prev) => [
+                      ...prev,
+                      {
+                        id: `sec-${idx}`,
+                        title: `Phần ${idx}`,
+                        duration_minutes: 30,
+                      },
+                    ]);
+                  }}
+                  className="btn btn-pill btn-sm"
+                >
+                  <Plus className="w-3.5 h-3.5 text-crimson" />
+                  Thêm phần thi
+                </button>
               </div>
 
               {sections.length === 0 ? (
-                <p className="text-xs text-slate-400 dark:text-zinc-500">
-                  Chưa chia phần riêng. Bấm <strong>"Áp dụng khung phần thi chuẩn của kỳ thi này"</strong> để điền nhanh cấu trúc {examType} hoặc bấm "+ Thêm phần thi".
+                <p className="text-xs text-[#876870] dark:text-[#c49ba3]">
+                  Chưa chia phần riêng. Nếu đề có nhiều phần với đồng hồ đếm ngược riêng (VD: Tư duy Toán học 60p, Đọc hiểu 30p, Khoa học 60p), hãy bấm &quot;+ Thêm phần thi&quot;.
                 </p>
               ) : (
                 <div className="space-y-2.5">
                   {sections.map((sec, idx) => (
                     <div
                       key={sec.id}
-                      className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 p-3"
+                      className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--line)] bg-[#fff6f7]/80 dark:bg-[#241219]/65 p-3"
                     >
-                      <span className="rounded bg-slate-200 dark:bg-zinc-800 px-2 py-1 text-[11px] font-mono font-semibold text-slate-700 dark:text-zinc-300">
+                      <span className="rounded-full bg-[#ffeff1] dark:bg-[#dc263e]/25 px-2.5 py-1 text-[11px] font-mono font-semibold text-crimson dark:text-[#fbbac3]">
                         {sec.id}
                       </span>
                       <input
@@ -1127,7 +1086,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           setSections(next);
                         }}
                         placeholder="Tên phần thi (VD: Phần 1: Tư duy Toán học)"
-                        className="flex-1 min-w-[190px] rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                        className="flex-1 min-w-[200px] rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-1.5 text-xs sm:text-sm font-medium text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                       />
                       <div className="flex items-center gap-1.5">
                         <input
@@ -1143,37 +1102,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             };
                             setSections(next);
                           }}
-                          className="w-16 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-xs sm:text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                          className="w-20 rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-2.5 py-1.5 text-xs sm:text-sm font-mono text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                         />
-                        <span className="text-xs text-slate-500">phút</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="number"
-                          min={1}
-                          max={1200}
-                          value={sec.max_score ?? ''}
-                          placeholder="Điểm"
-                          onChange={(e) => {
-                            const next = [...sections];
-                            next[idx] = {
-                              ...sec,
-                              max_score: e.target.value
-                                ? Math.max(1, Number(e.target.value))
-                                : undefined,
-                            };
-                            setSections(next);
-                          }}
-                          className="w-16 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-xs sm:text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
-                        />
-                        <span className="text-xs text-slate-500">điểm</span>
+                        <span className="text-xs text-[#876870]">phút</span>
                       </div>
                       <button
                         type="button"
                         onClick={() =>
                           setSections((prev) => prev.filter((_, i) => i !== idx))
                         }
-                        className="p-1.5 text-slate-400 hover:text-red-600"
+                        className="p-1.5 text-[#876870] hover:text-rose-600 cursor-pointer"
                         title="Xóa phần thi"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1185,37 +1123,37 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             </section>
 
             {/* Passages Manager */}
-            <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
+            <section className="glass-card rounded-[24px] p-5 sm:p-6 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                    3. Ngữ liệu / Đoạn văn (tùy chọn cho Đọc hiểu & Khoa học)
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-crimson">
+                    3. Ngữ liệu / Đoạn văn (tùy chọn cho Đọc hiểu &amp; Khoa học)
                   </h3>
                 </div>
                 <button
                   type="button"
                   onClick={handleAddPassage}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700"
+                  className="btn btn-pill btn-sm"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-3.5 h-3.5 text-crimson" />
                   Thêm đoạn văn / ngữ liệu
                 </button>
               </div>
 
               {passages.length === 0 ? (
-                <p className="text-xs text-slate-400 dark:text-zinc-500">
-                  Chưa có ngữ liệu nào. Bấm "+ Thêm đoạn văn / ngữ liệu" nếu đề có bài Đọc hiểu hoặc Tư duy Khoa học.
+                <p className="text-xs text-[#876870] dark:text-[#c49ba3]">
+                  Chưa có ngữ liệu nào. Bấm &quot;+ Thêm đoạn văn / ngữ liệu&quot; nếu đề có bài Đọc hiểu hoặc Tư duy Khoa học.
                 </p>
               ) : (
                 <div className="space-y-4">
                   {passages.map((p, idx) => (
                     <div
                       key={p.id}
-                      className="rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 p-4 space-y-3"
+                      className="rounded-2xl border border-[var(--line)] bg-[#fff6f7]/80 dark:bg-[#241219]/65 p-4 space-y-3"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                          <span className="rounded bg-slate-200 dark:bg-zinc-800 px-2 py-0.5 text-[11px] font-mono font-semibold text-slate-700 dark:text-zinc-300">
+                          <span className="rounded-full bg-[#ffeff1] dark:bg-[#dc263e]/25 px-2.5 py-0.5 text-[11px] font-mono font-semibold text-crimson dark:text-[#fbbac3]">
                             {p.id}
                           </span>
                           <input
@@ -1227,7 +1165,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                               setPassages(next);
                             }}
                             placeholder="Tiêu đề ngữ liệu..."
-                            className="flex-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                            className="flex-1 rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-1.5 text-xs sm:text-sm font-medium text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                           />
                         </div>
 
@@ -1239,7 +1177,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                               next[idx] = { ...p, section: e.target.value };
                               setPassages(next);
                             }}
-                            className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-xs text-slate-700 dark:text-zinc-200"
+                            className="rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-2.5 py-1.5 text-xs text-[#2a161b] dark:text-[#fff2f4]"
                           >
                             <option value="Tư duy Đọc hiểu">Tư duy Đọc hiểu</option>
                             <option value="Tư duy Khoa học">Tư duy Khoa học</option>
@@ -1249,7 +1187,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             onClick={() =>
                               setPassages((prev) => prev.filter((_, i) => i !== idx))
                             }
-                            className="p-1.5 text-slate-400 hover:text-red-600"
+                            className="p-1.5 text-[#876870] hover:text-rose-600 cursor-pointer"
                             title="Xóa ngữ liệu"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1265,15 +1203,15 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           next[idx] = { ...p, content: e.target.value };
                           setPassages(next);
                         }}
-                        placeholder="Nội dung đoạn văn / ngữ liệu (hỗ trợ KaTeX $...$ và $$...$$)..."
-                        className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-3 text-xs sm:text-sm text-slate-800 dark:text-zinc-200 focus:border-red-700 focus:outline-none"
+                        placeholder="Nội dung đoạn văn / ngữ liệu (hỗ trợ LaTeX $...$ và $$...$$)..."
+                        className="w-full rounded-2xl border border-[var(--line)] bg-white dark:bg-[#190c11] p-3 text-xs sm:text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                       />
 
                       {p.content.trim() && (
-                        <div className="rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 text-xs sm:text-sm text-slate-700 dark:text-zinc-300 leading-relaxed">
-                          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1">
+                        <div className="rounded-2xl border border-[var(--line)] bg-white/90 dark:bg-[#190c11]/80 p-3.5 text-xs sm:text-sm text-[#5e4249] dark:text-[#ebc9cf] leading-relaxed">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-crimson mb-1 flex items-center gap-1">
                             <BookOpen className="w-3 h-3" />
-                            Xem trước KaTeX
+                            Xem trước LaTeX
                           </div>
                           <MathText text={p.content} />
                         </div>
@@ -1287,7 +1225,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             {/* Questions Builder */}
             <section className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-crimson">
                   4. Danh sách câu hỏi ({questions.length} câu)
                 </h3>
               </div>
@@ -1341,9 +1279,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   onClick={() =>
                     setQuestions((prev) => [...prev, createEmptyQuestion(prev.length + 1)])
                   }
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-zinc-200 hover:border-red-700 hover:text-red-700 dark:hover:text-red-400 transition-colors"
+                  className="btn btn-pill"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-4 h-4 text-crimson" />
                   Thêm câu hỏi
                 </button>
 
@@ -1351,7 +1289,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   type="button"
                   onClick={handleSaveExam}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 hover:bg-red-800 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white disabled:opacity-50 transition-colors"
+                  className="btn btn-crimson"
                 >
                   <Save className="w-4 h-4" />
                   {saving ? 'Đang lưu...' : 'Lưu đề lên hệ thống'}
@@ -1365,10 +1303,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         {activeTab === 'admins' && isSuperAdmin && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100">
+              <h2 className="text-lg sm:text-xl font-medium text-[#2a161b] dark:text-white">
                 Quản lý Quản trị viên (Super Admin)
               </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+              <p className="text-xs text-[#876870] dark:text-[#c49ba3] mt-0.5">
                 Cấp hoặc gỡ quyền soạn/sửa đề thi cho Gmail cộng tác viên trên bảng{' '}
                 <code>app_admins</code>.
               </p>
@@ -1377,9 +1315,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             {/* Add Admin Form */}
             <form
               onSubmit={handleAddAdmin}
-              className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-xs space-y-3"
+              className="glass-card rounded-[24px] p-5 space-y-3"
             >
-              <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">
+              <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf]">
                 Thêm Quản trị viên mới bằng Gmail
               </label>
               <div className="flex flex-col sm:flex-row gap-2.5">
@@ -1389,11 +1327,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   value={newAdminEmail}
                   onChange={(e) => setNewAdminEmail(e.target.value)}
                   placeholder="nhapemail@gmail.com"
-                  className="flex-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                  className="flex-1 rounded-full border border-[var(--line)] bg-white dark:bg-[#190c11] px-4 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white transition-colors shrink-0"
+                  className="btn btn-crimson btn-sm shrink-0"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   + Thêm QTV
@@ -1401,10 +1339,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               </div>
               {adminMsg && (
                 <div
-                  className={`rounded-lg border px-3 py-2 text-xs font-medium ${
+                  className={`rounded-2xl border px-3.5 py-2 text-xs font-medium ${
                     adminMsg.type === 'success'
                       ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900 text-red-700 dark:text-red-300'
+                      : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
                   }`}
                 >
                   {adminMsg.text}
@@ -1413,35 +1351,35 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             </form>
 
             {/* Current Admins Table */}
-            <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200/80 dark:border-zinc-800">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+            <div className="glass-card rounded-[24px] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line)] bg-[#fff6f7]/70 dark:bg-[#241219]/60">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#876870] dark:text-[#c49ba3]">
                   Danh sách QTV hiện tại
                 </span>
                 <button
                   type="button"
                   onClick={loadAdmins}
                   disabled={loadingAdmins}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-crimson hover:underline cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loadingAdmins ? 'animate-spin' : ''}`} />
                   Làm mới
                 </button>
               </div>
 
-              <div className="divide-y divide-slate-100 dark:divide-zinc-800">
+              <div className="divide-y divide-[var(--line)]">
                 {/* Root Super Admin Row */}
-                <div className="px-5 py-3.5 flex items-center justify-between gap-3 bg-red-50/30 dark:bg-red-950/10">
+                <div className="px-5 py-3.5 flex items-center justify-between gap-3 bg-[#ffeff1]/55 dark:bg-[#dc263e]/15">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">
+                      <span className="text-sm font-semibold text-[#2a161b] dark:text-white truncate">
                         {SUPER_ADMIN_EMAIL}
                       </span>
-                      <span className="rounded-md bg-[#B91C1C] px-2 py-0.5 text-[10px] font-bold text-white">
+                      <span className="rounded-full bg-crimson px-2.5 py-0.5 text-[10px] font-bold text-white">
                         Super Admin gốc
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
+                    <p className="text-xs text-[#876870] dark:text-[#c49ba3] mt-0.5">
                       Toàn quyền hệ thống (không thể gỡ)
                     </p>
                   </div>
@@ -1455,10 +1393,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       className="px-5 py-3.5 flex items-center justify-between gap-3"
                     >
                       <div className="min-w-0">
-                        <div className="text-sm font-medium text-slate-800 dark:text-zinc-200 truncate">
+                        <div className="text-sm font-medium text-[#2a161b] dark:text-[#fff2f4] truncate">
                           {admin.email}
                         </div>
-                        <div className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
+                        <div className="text-xs text-[#876870] dark:text-[#c49ba3] mt-0.5">
                           Cấp quyền:{' '}
                           {admin.created_at
                             ? new Date(admin.created_at).toLocaleDateString('vi-VN')
@@ -1469,7 +1407,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRemoveAdmin(admin.email)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-red-200/80 dark:border-red-900/70 bg-red-50/60 dark:bg-red-950/30 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60 shrink-0"
+                        className="inline-flex items-center gap-1 rounded-full border border-rose-200 dark:border-rose-900/70 bg-rose-50/70 dark:bg-rose-950/30 px-3 py-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60 shrink-0 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         Gỡ quyền
@@ -1479,7 +1417,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
                 {adminList.filter((a) => a.email.toLowerCase() !== SUPER_ADMIN_EMAIL)
                   .length === 0 && (
-                  <div className="px-5 py-6 text-center text-xs text-slate-400 dark:text-zinc-500">
+                  <div className="px-5 py-6 text-center text-xs text-[#876870] dark:text-[#b88c95]">
                     Chưa có cộng tác viên nào được cấp quyền QTV.
                   </div>
                 )}
@@ -1491,16 +1429,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl border border-slate-200/80 dark:border-zinc-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#261118]/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-[26px] bg-white/95 dark:bg-[#1b0d13]/95 backdrop-blur-2xl p-6 shadow-2xl border border-[var(--line)]">
             <div className="flex items-center gap-2.5 mb-3">
-              <AlertTriangle className="w-5 h-5 text-red-700 dark:text-red-500 shrink-0" />
-              <h3 className="text-base font-bold">Xác nhận xóa đề thi?</h3>
+              <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+              <h3 className="text-base font-semibold text-[#2a161b] dark:text-white">
+                Xác nhận xóa đề thi?
+              </h3>
             </div>
-            <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed">
+            <p className="text-sm text-[#5e4249] dark:text-[#ebc9cf] leading-relaxed">
               Bạn có chắc chắn muốn xóa đề{' '}
-              <span className="font-semibold text-slate-900 dark:text-zinc-100">
-                "{deleteTarget.title}"
+              <span className="font-semibold text-[#2a161b] dark:text-white">
+                &quot;{deleteTarget.title}&quot;
               </span>{' '}
               khỏi Supabase? Hành động này không thể hoàn tác.
             </p>
@@ -1508,7 +1448,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
-                className="rounded-lg border border-slate-200/80 dark:border-zinc-700 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                className="btn btn-pill btn-sm"
               >
                 Hủy
               </button>
@@ -1516,7 +1456,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 hover:bg-rose-700 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 cursor-pointer"
               >
                 {deleting ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
               </button>
@@ -1527,23 +1467,25 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
       {/* Secondary JSON Import Modal */}
       {jsonModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-zinc-900 shadow-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200/80 dark:border-zinc-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#261118]/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-[26px] bg-white/95 dark:bg-[#1b0d13]/95 backdrop-blur-2xl shadow-2xl border border-[var(--line)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--line)] bg-[#fff6f7]/70 dark:bg-[#241219]/60">
               <div className="flex items-center gap-2">
-                <FileCode2 className="w-4 h-4 text-red-700 dark:text-red-500" />
-                <h3 className="text-sm font-bold">Import nhanh từ mã JSON</h3>
+                <FileCode2 className="w-4 h-4 text-crimson" />
+                <h3 className="text-sm font-semibold text-[#2a161b] dark:text-white">
+                  Import nhanh từ mã JSON
+                </h3>
               </div>
               <button
                 onClick={() => setJsonModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200"
+                className="grid h-7 w-7 place-items-center rounded-full text-[#876870] hover:text-crimson hover:bg-[#ffeff1] dark:hover:bg-white/10 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="p-5 space-y-4">
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
+              <p className="text-xs text-[#876870] dark:text-[#c49ba3]">
                 Dán mã JSON đề thi vào đây để nạp tự động vào trình soạn thảo trực quan.
               </p>
               <textarea
@@ -1554,10 +1496,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   if (jsonError) setJsonError(null);
                 }}
                 placeholder='{"title": "...", "duration_minutes": 60, "questions": [...]}'
-                className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-[#FAFAFA] dark:bg-zinc-950 p-3 font-mono text-xs text-slate-800 dark:text-zinc-200 focus:border-red-700 focus:outline-none"
+                className="w-full rounded-2xl border border-[var(--line)] bg-[#fff8f9] dark:bg-[#190c11] p-3.5 font-mono text-xs text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
               />
               {jsonError && (
-                <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 px-3 py-2 text-xs font-medium text-red-700 dark:text-red-300">
+                <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 px-3.5 py-2 text-xs font-medium text-rose-700 dark:text-rose-300">
                   {jsonError}
                 </div>
               )}
@@ -1565,14 +1507,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setJsonModalOpen(false)}
-                  className="rounded-lg border border-slate-200/80 dark:border-zinc-700 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-300"
+                  className="btn btn-pill btn-sm"
                 >
                   Đóng
                 </button>
                 <button
                   type="button"
                   onClick={handleImportJsonToEditor}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white"
+                  className="btn btn-crimson btn-sm"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   Nạp vào trình soạn thảo

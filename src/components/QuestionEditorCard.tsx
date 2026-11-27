@@ -120,7 +120,11 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
     onChange(base);
   };
 
-  const syncDragDropBlanks = (newPrompt: string, currentBlanks = question.blanks ?? [], distractorStr = distractorText) => {
+  const syncDragDropBlanks = (
+    newPrompt: string,
+    currentBlanks = question.blanks ?? [],
+    distractorStr = distractorText
+  ) => {
     const ids = extractBlankIds(newPrompt);
     const nextBlanks = ids.map((id) => {
       const existing = currentBlanks.find((b) => b.id === id);
@@ -166,18 +170,18 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
   };
 
   return (
-    <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs overflow-hidden">
+    <div className="glass-card rounded-[24px] overflow-hidden">
       {/* Card Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 bg-slate-50/70 dark:bg-zinc-950/60 border-b border-slate-200/80 dark:border-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 bg-[#fff6f7]/80 dark:bg-[#241219]/70 border-b border-[var(--line)]">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-md bg-slate-900 dark:bg-zinc-100 px-2.5 py-1 text-xs font-mono font-semibold text-white dark:text-zinc-900">
+          <span className="rounded-full bg-crimson px-3 py-1 text-xs font-mono font-semibold text-white">
             Câu {index + 1}
           </span>
 
           <select
             value={question.section}
             onChange={(e) => onChange({ ...question, section: e.target.value })}
-            className="rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-zinc-200 focus:border-red-700 focus:outline-none"
+            className="rounded-full border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-1 text-xs font-medium text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
           >
             {SECTIONS.map((s) => (
               <option key={s} value={s}>
@@ -198,7 +202,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                   section: matched ? matched.title : question.section,
                 });
               }}
-              className="rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 text-xs font-medium text-[#B91C1C] dark:text-red-400 max-w-[190px] focus:border-red-700 focus:outline-none"
+              className="rounded-full border border-[#dc263e]/30 bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 px-3 py-1 text-xs font-medium text-[#b91c30] dark:text-[#fbbac3] max-w-[190px] focus:border-crimson focus:outline-none"
               title="Thuộc phần thi"
             >
               <option value="">Chọn phần thi...</option>
@@ -219,7 +223,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                   passageId: e.target.value || undefined,
                 })
               }
-              className="rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-zinc-300 max-w-[200px] focus:border-red-700 focus:outline-none"
+              className="rounded-full border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-1 text-xs font-medium text-[#5e4249] dark:text-[#ebc9cf] max-w-[200px] focus:border-crimson focus:outline-none"
               title="Gắn ngữ liệu đọc hiểu / khoa học"
             >
               <option value="">Không gắn ngữ liệu</option>
@@ -237,7 +241,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
             type="button"
             disabled={index === 0}
             onClick={onMoveUp}
-            className="rounded-md p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800 disabled:opacity-30"
+            className="rounded-full p-1.5 text-[#876870] hover:text-crimson hover:bg-[#ffeff1] dark:hover:bg-white/10 disabled:opacity-30 transition-colors cursor-pointer"
             title="Di chuyển lên"
           >
             <ArrowUp className="w-3.5 h-3.5" />
@@ -246,7 +250,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
             type="button"
             disabled={index === total - 1}
             onClick={onMoveDown}
-            className="rounded-md p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800 disabled:opacity-30"
+            className="rounded-full p-1.5 text-[#876870] hover:text-crimson hover:bg-[#ffeff1] dark:hover:bg-white/10 disabled:opacity-30 transition-colors cursor-pointer"
             title="Di chuyển xuống"
           >
             <ArrowDown className="w-3.5 h-3.5" />
@@ -254,7 +258,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
           <button
             type="button"
             onClick={onDuplicate}
-            className="rounded-md p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800"
+            className="rounded-full p-1.5 text-[#876870] hover:text-crimson hover:bg-[#ffeff1] dark:hover:bg-white/10 transition-colors cursor-pointer"
             title="Nhân bản câu hỏi"
           >
             <Copy className="w-3.5 h-3.5" />
@@ -262,7 +266,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-md p-1.5 text-slate-400 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
+            className="rounded-full p-1.5 text-[#876870] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
             title="Xóa câu hỏi"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -280,10 +284,10 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                 key={opt.type}
                 type="button"
                 onClick={() => handleTypeChange(opt.type)}
-                className={`flex items-center justify-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold transition-all ${
+                className={`flex items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
                   active
-                    ? 'border-red-700 bg-red-50/70 dark:bg-red-950/40 text-red-700 dark:text-red-400'
-                    : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                    ? 'border-crimson bg-[#ffeff1] dark:bg-[#dc263e]/25 text-crimson dark:text-[#fbbac3] shadow-xs'
+                    : 'border-[var(--line)] bg-white/85 dark:bg-[#1d0f15]/80 text-[#5e4249] dark:text-[#ebc9cf] hover:border-crimson/50'
                 }`}
               >
                 {opt.icon}
@@ -293,18 +297,18 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
           })}
         </div>
 
-        {/* Prompt Input + Live KaTeX Preview */}
+        {/* Prompt Input + Live LaTeX Preview */}
         <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-              Nội dung câu hỏi (hỗ trợ KaTeX: <code>$...$</code> hoặc <code>$$...$$</code>)
+            <label className="text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf]">
+              Nội dung câu hỏi (hỗ trợ LaTeX: <code>$...$</code> hoặc <code>$$...$$</code>)
             </label>
             <div className="flex items-center gap-2">
               {question.type === 'drag_drop' && (
                 <button
                   type="button"
                   onClick={handleInsertBlank}
-                  className="inline-flex items-center gap-1 rounded-md bg-slate-900 dark:bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+                  className="btn btn-crimson !py-1 !px-3 !text-[11px]"
                 >
                   <Plus className="w-3 h-3" />
                   Chèn ô trống [[b{extractBlankIds(question.prompt).length + 1}]]
@@ -313,14 +317,14 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPreview((v) => !v)}
-                className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
                   showPreview
-                    ? 'border-slate-300 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200'
-                    : 'border-slate-200/80 dark:border-zinc-800 text-slate-500'
+                    ? 'border-crimson/35 bg-[#ffeff1] dark:bg-[#dc263e]/20 text-crimson dark:text-[#fbbac3]'
+                    : 'border-[var(--line)] text-[#876870]'
                 }`}
               >
                 <Eye className="w-3 h-3" />
-                Xem trước KaTeX
+                Xem trước LaTeX
               </button>
             </div>
           </div>
@@ -337,12 +341,12 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
               }
             }}
             placeholder="Nhập đề bài... VD: Cho hàm số $f(x) = x^2 - 4x + 3$. Tìm giá trị nhỏ nhất..."
-            className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-[#FAFAFA] dark:bg-zinc-950 p-3 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none"
+            className="w-full rounded-2xl border border-[var(--line)] bg-[#fff8f9] dark:bg-[#190c11] p-3.5 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:bg-white dark:focus:bg-[#1d0f15] focus:ring-2 focus:ring-crimson/15 focus:outline-none"
           />
 
           {showPreview && question.prompt.trim() && (
-            <div className="rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-950/60 px-3.5 py-2.5 text-sm text-slate-800 dark:text-zinc-200">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-1">
+            <div className="rounded-2xl border border-[var(--line)] bg-[#fff6f7]/80 dark:bg-[#241219]/70 px-4 py-3 text-sm text-[#2a161b] dark:text-[#fff2f4]">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-crimson dark:text-[#ef6c7e] mb-1">
                 Live Preview
               </div>
               <MathText text={question.prompt} />
@@ -353,7 +357,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
         {/* 1. Single Choice Fields */}
         {question.type === 'single_choice' && (
           <div className="space-y-2.5">
-            <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf]">
               Các lựa chọn (tích chọn đáp án đúng)
             </label>
             {(question.options ?? []).map((opt, idx) => {
@@ -363,10 +367,10 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                   <button
                     type="button"
                     onClick={() => onChange({ ...question, correctOption: opt.id })}
-                    className={`w-8 h-8 rounded-lg border text-xs font-mono font-bold shrink-0 transition-colors ${
+                    className={`w-8 h-8 rounded-xl border text-xs font-mono font-bold shrink-0 transition-colors cursor-pointer ${
                       isCorrect
-                        ? 'bg-red-700 text-white border-red-700'
-                        : 'bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 hover:border-slate-400'
+                        ? 'bg-crimson text-white border-crimson shadow-xs'
+                        : 'bg-[#fff5f6] dark:bg-[#2a141c] text-[#5e4249] dark:text-[#fbbac3] border-[var(--line)] hover:border-crimson/50'
                     }`}
                     title="Chọn làm đáp án đúng"
                   >
@@ -380,8 +384,8 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                       nextOpts[idx] = { ...opt, text: e.target.value };
                       onChange({ ...question, options: nextOpts });
                     }}
-                    placeholder={`Nội dung đáp án ${opt.id} (hỗ trợ $KaTeX$)...`}
-                    className="flex-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                    placeholder={`Nội dung đáp án ${opt.id} (hỗ trợ $LaTeX$)...`}
+                    className="flex-1 rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:ring-2 focus:ring-crimson/15 focus:outline-none"
                   />
                 </div>
               );
@@ -393,7 +397,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
         {question.type === 'true_false' && (
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+              <label className="text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf]">
                 Danh sách mệnh đề Đúng / Sai
               </label>
               <button
@@ -406,7 +410,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                     statements: [...stmts, { id: nextId, text: '', correct: true }],
                   });
                 }}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 dark:text-red-400 hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-crimson dark:text-[#ef6c7e] hover:underline cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Thêm mệnh đề
@@ -416,7 +420,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
             <div className="space-y-2">
               {(question.statements ?? []).map((stmt, idx) => (
                 <div key={stmt.id} className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-semibold text-slate-400 w-5">
+                  <span className="text-xs font-mono font-semibold text-crimson w-5">
                     {String.fromCharCode(97 + idx)})
                   </span>
                   <input
@@ -428,7 +432,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                       onChange({ ...question, statements: next });
                     }}
                     placeholder={`Nội dung mệnh đề ${String.fromCharCode(97 + idx)}...`}
-                    className="flex-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-1.5 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                    className="flex-1 rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-1.5 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                   />
                   <button
                     type="button"
@@ -437,10 +441,10 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                       next[idx] = { ...stmt, correct: !stmt.correct };
                       onChange({ ...question, statements: next });
                     }}
-                    className={`w-16 py-1.5 rounded-lg text-xs font-semibold border transition-colors shrink-0 ${
+                    className={`w-16 py-1.5 rounded-full text-xs font-semibold border transition-colors shrink-0 cursor-pointer ${
                       stmt.correct
-                        ? 'bg-emerald-600 text-white border-emerald-600'
-                        : 'bg-red-700 text-white border-red-700'
+                        ? 'bg-teal-600 text-white border-teal-600'
+                        : 'bg-rose-600 text-white border-rose-600'
                     }`}
                   >
                     {stmt.correct ? 'Đúng' : 'Sai'}
@@ -451,7 +455,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                       const next = (question.statements ?? []).filter((_, i) => i !== idx);
                       onChange({ ...question, statements: next });
                     }}
-                    className="p-1.5 text-slate-400 hover:text-red-600"
+                    className="p-1.5 text-[#876870] hover:text-rose-600 cursor-pointer"
                     title="Xóa mệnh đề"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -464,14 +468,14 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
 
         {/* 3. Drag & Drop Fields */}
         {question.type === 'drag_drop' && (
-          <div className="space-y-3 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-950/60 p-4">
-            <div className="text-xs font-semibold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-red-700" />
+          <div className="space-y-3 rounded-2xl border border-[var(--line)] bg-[#fff6f7]/80 dark:bg-[#241219]/65 p-4">
+            <div className="text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-crimson" />
               Đáp án cho từng ô trống
             </div>
 
             {(question.blanks ?? []).length === 0 ? (
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
+              <p className="text-xs text-[#876870] dark:text-[#c49ba3]">
                 Chưa có ô trống nào. Hãy bấm nút <strong>+ Chèn ô trống</strong> ở trên để
                 thêm chỗ trống vào đề bài.
               </p>
@@ -479,7 +483,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {(question.blanks ?? []).map((blank, idx) => (
                   <div key={blank.id} className="flex items-center gap-2">
-                    <span className="rounded bg-slate-200 dark:bg-zinc-800 px-2 py-1 text-[11px] font-mono font-semibold text-slate-700 dark:text-zinc-300">
+                    <span className="rounded-full bg-[#ffeff1] dark:bg-[#dc263e]/25 px-2.5 py-1 text-[11px] font-mono font-semibold text-crimson dark:text-[#fbbac3]">
                       [[{blank.id}]]
                     </span>
                     <input
@@ -491,7 +495,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                         syncDragDropBlanks(question.prompt, nextBlanks, distractorText);
                       }}
                       placeholder="Từ/cụm từ đúng..."
-                      className="flex-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-xs sm:text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                      className="flex-1 rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-1.5 text-xs sm:text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                     />
                   </div>
                 ))}
@@ -499,7 +503,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
             )}
 
             <div>
-              <label className="block text-[11px] font-medium text-slate-500 dark:text-zinc-400 mb-1">
+              <label className="block text-[11px] font-medium text-[#876870] dark:text-[#c49ba3] mb-1">
                 Các từ gây nhiễu (tùy chọn, cách nhau bởi dấu phẩy)
               </label>
               <input
@@ -510,7 +514,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                   syncDragDropBlanks(question.prompt, question.blanks ?? [], e.target.value);
                 }}
                 placeholder="VD: than chì, ăn mòn điện hóa"
-                className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs sm:text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                className="w-full rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-1.5 text-xs sm:text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
               />
             </div>
           </div>
@@ -520,7 +524,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
         {question.type === 'short_answer' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+              <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1">
                 Đáp án đúng (nhiều đáp án cách nhau bởi dấu phẩy)
               </label>
               <input
@@ -534,11 +538,11 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                   onChange({ ...question, correctAnswers: arr });
                 }}
                 placeholder="VD: 31 hoặc 0.6, 0,6"
-                className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                className="w-full rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-2 text-sm font-mono text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+              <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1">
                 Gợi ý ô nhập (placeholder)
               </label>
               <input
@@ -546,26 +550,26 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                 value={question.placeholder ?? ''}
                 onChange={(e) => onChange({ ...question, placeholder: e.target.value })}
                 placeholder="VD: Nhập một số nguyên..."
-                className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                className="w-full rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
               />
             </div>
           </div>
         )}
 
-        {/* Explanation + Live KaTeX Preview */}
-        <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
-          <label className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
-            Lời giải chi tiết (tùy chọn, hỗ trợ KaTeX)
+        {/* Explanation + Live LaTeX Preview */}
+        <div className="space-y-2 pt-2 border-t border-[var(--line)]">
+          <label className="block text-xs font-semibold text-[#876870] dark:text-[#c49ba3]">
+            Lời giải chi tiết (tùy chọn, hỗ trợ LaTeX)
           </label>
           <textarea
             rows={2}
             value={question.explanation ?? ''}
             onChange={(e) => onChange({ ...question, explanation: e.target.value })}
             placeholder="Nhập hướng dẫn giải..."
-            className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-[#FAFAFA] dark:bg-zinc-950 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-zinc-200 focus:border-red-700 focus:bg-white dark:focus:bg-zinc-900 focus:outline-none"
+            className="w-full rounded-2xl border border-[var(--line)] bg-[#fff8f9] dark:bg-[#190c11] p-3 text-xs sm:text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:bg-white dark:focus:bg-[#1d0f15] focus:outline-none"
           />
           {showPreview && question.explanation?.trim() && (
-            <div className="rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-950/60 px-3 py-2 text-xs sm:text-sm text-slate-700 dark:text-zinc-300">
+            <div className="rounded-2xl border border-[var(--line)] bg-[#fff6f7]/80 dark:bg-[#241219]/70 px-3.5 py-2.5 text-xs sm:text-sm text-[#5e4249] dark:text-[#ebc9cf]">
               <MathText text={question.explanation} />
             </div>
           )}

@@ -16,8 +16,7 @@ import {
   fetchProfilesByIds,
   type UserProfile,
 } from '../lib/profileService';
-import type { AttemptRecord, Exam, ExamType } from '../types/exam';
-import { EXAM_TYPES, normalizeExamType } from '../utils/examTypes';
+import type { AttemptRecord, Exam } from '../types/exam';
 import { formatDuration } from '../utils/scoring';
 import { RankBadge } from './RankBadge';
 
@@ -53,30 +52,30 @@ const PodiumCard: React.FC<{ entry: PodiumEntry }> = ({ entry }) => {
   const isSecond = entry.rank === 2;
 
   const containerClass = isFirst
-    ? 'order-1 sm:order-2 border-amber-300 dark:border-amber-700/80 bg-amber-50/40 dark:bg-amber-950/20 sm:-translate-y-2 shadow-sm'
+    ? 'order-1 sm:order-2 border-[#dc263e]/40 bg-gradient-to-b from-[#ffeff1]/95 to-white dark:from-[#361621] dark:to-[#1d0f15] sm:-translate-y-2 shadow-[0_18px_40px_-20px_rgba(220,38,62,0.32)]'
     : isSecond
-      ? 'order-2 sm:order-1 border-slate-200/90 dark:border-zinc-700 bg-white dark:bg-zinc-900'
-      : 'order-3 border-orange-200/80 dark:border-orange-900/60 bg-white dark:bg-zinc-900';
+      ? 'order-2 sm:order-1 border-[var(--line)] bg-white/90 dark:bg-[#241219]/75'
+      : 'order-3 border-[var(--line)] bg-white/90 dark:bg-[#241219]/75';
 
   return (
     <div
-      className={`rounded-xl border p-4 text-center flex flex-col items-center gap-2 transition-all ${containerClass} ${
-        entry.isCurrentUser ? 'ring-1 ring-[#B91C1C]' : ''
+      className={`rounded-2xl border p-4 text-center flex flex-col items-center gap-2 transition-all ${containerClass} ${
+        entry.isCurrentUser ? 'ring-2 ring-crimson/70' : ''
       }`}
     >
       <div className="flex items-center gap-1 text-xs font-bold">
         {isFirst ? (
-          <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
-            <Crown className="w-4 h-4 fill-amber-400/30" />
+          <span className="inline-flex items-center gap-1 text-crimson dark:text-[#fbbac3]">
+            <Crown className="w-4 h-4 fill-crimson/20 text-crimson dark:text-[#ef6c7e]" />
             Top 1
           </span>
         ) : isSecond ? (
-          <span className="inline-flex items-center gap-1 text-slate-500 dark:text-zinc-400">
-            <Medal className="w-4 h-4" />
+          <span className="inline-flex items-center gap-1 text-[#5e4249] dark:text-[#ebc9cf]">
+            <Medal className="w-4 h-4 text-[#ef6c7e]" />
             Top 2
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400">
+          <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
             <Medal className="w-4 h-4" />
             Top 3
           </span>
@@ -87,14 +86,14 @@ const PodiumCard: React.FC<{ entry: PodiumEntry }> = ({ entry }) => {
         <img
           src={entry.avatarUrl}
           alt={entry.name}
-          className={`rounded-full object-cover border border-slate-200 dark:border-zinc-700 ${
+          className={`rounded-full object-cover border border-[var(--line)] ${
             isFirst ? 'w-14 h-14' : 'w-11 h-11'
           }`}
           referrerPolicy="no-referrer"
         />
       ) : (
         <div
-          className={`rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 font-bold flex items-center justify-center border border-slate-200/80 dark:border-zinc-700 ${
+          className={`rounded-full bg-[#ffeff1] dark:bg-[#2e151e] text-crimson dark:text-[#fbbac3] font-bold flex items-center justify-center border border-[var(--line)] ${
             isFirst ? 'w-14 h-14 text-base' : 'w-11 h-11 text-xs'
           }`}
         >
@@ -103,7 +102,7 @@ const PodiumCard: React.FC<{ entry: PodiumEntry }> = ({ entry }) => {
       )}
 
       <div className="w-full min-w-0 space-y-1">
-        <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-zinc-100 truncate">
+        <div className="text-xs sm:text-sm font-semibold text-[#2a161b] dark:text-[#fff2f4] truncate">
           {entry.name}
         </div>
         <div className="flex justify-center">
@@ -111,11 +110,11 @@ const PodiumCard: React.FC<{ entry: PodiumEntry }> = ({ entry }) => {
         </div>
       </div>
 
-      <div className="pt-1 border-t border-slate-200/60 dark:border-zinc-800 w-full">
-        <div className="text-base font-bold font-mono text-[#B91C1C] dark:text-red-400">
+      <div className="pt-1.5 border-t border-[var(--line)] w-full">
+        <div className="text-base font-bold font-mono text-crimson dark:text-[#fbbac3]">
           {entry.primaryMetric}
         </div>
-        <div className="text-[11px] font-mono text-slate-500 dark:text-zinc-400">
+        <div className="text-[11px] font-mono text-[#876870] dark:text-[#c49ba3]">
           {entry.secondaryMetric}
         </div>
       </div>
@@ -133,7 +132,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   onClose,
 }) => {
   const [activeTab, setActiveTab] = useState<'xp' | 'exam'>(initialTab);
-  const [filterType, setFilterType] = useState<'ALL' | ExamType>('ALL');
   const [selectedExamId, setSelectedExamId] = useState<string>(
     initialExam?.id ?? exams[0]?.id ?? ''
   );
@@ -143,27 +141,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     if (!isOpen) return;
     setActiveTab(initialTab);
     if (initialExam) {
-      setFilterType('ALL');
       setSelectedExamId(initialExam.id);
     } else if (!selectedExamId && exams[0]) {
       setSelectedExamId(exams[0].id);
     }
   }, [isOpen, initialExam, initialTab, exams, selectedExamId]);
 
-  const filteredExamList = useMemo(() => {
-    if (filterType === 'ALL') return exams;
-    return exams.filter((e) => normalizeExamType(e.exam_type) === filterType);
-  }, [exams, filterType]);
-
-  // Ensure selectedExamId stays valid when filterType changes
   useEffect(() => {
-    if (
-      filteredExamList.length > 0 &&
-      !filteredExamList.some((e) => e.id === selectedExamId)
-    ) {
-      setSelectedExamId(filteredExamList[0].id);
+    if (exams.length > 0 && !exams.some((e) => e.id === selectedExamId)) {
+      setSelectedExamId(exams[0].id);
     }
-  }, [filteredExamList, selectedExamId]);
+  }, [exams, selectedExamId]);
 
   // Global XP state
   const [xpProfiles, setXpProfiles] = useState<UserProfile[]>([]);
@@ -237,28 +225,24 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const isLoading = activeTab === 'xp' ? loadingXp : loadingExam;
   const errorMessage = activeTab === 'xp' ? xpError : examError;
 
-  // Build Podium + List for current tab
-  const xpTop3: PodiumEntry[] = xpProfiles.slice(0, 3).map((p, i) => {
-    const safeXp = p.xp ?? 0;
-    return {
-      rank: (i + 1) as 1 | 2 | 3,
-      name: p.full_name || 'Thí sinh ẩn danh',
-      avatarUrl: p.avatar_url,
-      xp: safeXp,
-      primaryMetric: `${safeXp.toLocaleString('vi-VN')} XP`,
-      secondaryMetric: `${p.exams_completed ?? 0} đề đã thi`,
-      isCurrentUser: Boolean(currentUserId && p.id === currentUserId),
-    };
-  });
+  const xpTop3: PodiumEntry[] = xpProfiles.slice(0, 3).map((p, i) => ({
+    rank: (i + 1) as 1 | 2 | 3,
+    name: p.full_name || 'Thí sinh Parabol',
+    avatarUrl: p.avatar_url,
+    xp: p.xp,
+    primaryMetric: `${p.xp.toLocaleString('vi-VN')} XP`,
+    secondaryMetric: `${p.exams_completed} đề đã thi`,
+    isCurrentUser: Boolean(currentUserId && p.id === currentUserId),
+  }));
 
   const examTop3: PodiumEntry[] = validAttempts.slice(0, 3).map((a, i) => ({
     rank: (i + 1) as 1 | 2 | 3,
-    name: a.student_name || 'Thí sinh ẩn danh',
+    name: a.student_name,
     avatarUrl: a.avatar_url,
-    xp: a.user_id && profilesMap[a.user_id] ? profilesMap[a.user_id].xp ?? 0 : 0,
-    primaryMetric: `${Number(a.score ?? 0).toFixed(2)} đ`,
+    xp: a.user_id && profilesMap[a.user_id] ? profilesMap[a.user_id].xp : 0,
+    primaryMetric: `${Number(a.score).toFixed(2)} đ`,
     secondaryMetric: `${a.correct_count ?? '-'}/${a.total_questions ?? '-'} · ${
-      a.time_spent_seconds !== undefined && a.time_spent_seconds !== null
+      a.time_spent_seconds !== undefined
         ? formatDuration(a.time_spent_seconds)
         : '--:--'
     }`,
@@ -267,7 +251,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
   const podiumEntries = activeTab === 'xp' ? xpTop3 : examTop3;
 
-  // Find current user's rank if outside Top 10
   const myXpIndex = currentUserId
     ? xpProfiles.findIndex((p) => p.id === currentUserId)
     : -1;
@@ -276,18 +259,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     : -1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
-      <div className="w-full max-w-3xl rounded-xl bg-white dark:bg-zinc-900 shadow-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[88vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#261118]/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-3xl rounded-[26px] bg-white/95 dark:bg-[#1b0d13]/95 backdrop-blur-2xl shadow-[0_32px_90px_-28px_rgba(38,17,24,0.45)] border border-[var(--line)] overflow-hidden flex flex-col max-h-[88vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80 dark:border-zinc-800 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--line)] bg-[#fff6f7]/75 dark:bg-[#241219]/65 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <Trophy className="w-5 h-5 text-[#B91C1C] dark:text-red-500 shrink-0" />
+            <Trophy className="w-5 h-5 text-crimson shrink-0" />
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
+              <h3 className="text-base font-semibold text-[#2a161b] dark:text-[#fff2f4]">
                 Bảng xếp hạng Parabol
               </h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Vinh danh Cao thủ XP & Thủ khoa từng đề thi
+              <p className="text-xs text-[#876870] dark:text-[#c49ba3]">
+                Vinh danh Cao thủ XP &amp; Thủ khoa từng đề thi
               </p>
             </div>
           </div>
@@ -300,14 +283,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   : selectedExamId && loadExamData(selectedExamId)
               }
               disabled={isLoading}
-              className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              className="grid h-8 w-8 place-items-center rounded-full text-[#876870] hover:text-crimson hover:bg-[#ffeff1] dark:hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer"
               title="Tải lại"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+              className="grid h-8 w-8 place-items-center rounded-full text-[#876870] hover:text-crimson hover:bg-[#ffeff1] dark:hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Đóng bảng xếp hạng"
             >
               <X className="w-4 h-4" />
@@ -316,60 +299,47 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         </div>
 
         {/* Filter Tabs Bar */}
-        <div className="px-6 py-3 bg-[#FAFAFA] dark:bg-zinc-950 border-b border-slate-200/80 dark:border-zinc-800 space-y-3 shrink-0">
-          <div className="grid grid-cols-2 rounded-lg bg-slate-200/60 dark:bg-zinc-800 p-1">
+        <div className="px-6 py-3.5 bg-[#fff8f9] dark:bg-[#190c11]/80 border-b border-[var(--line)] space-y-3 shrink-0">
+          <div className="grid grid-cols-2 rounded-full bg-[#ffeff1]/85 dark:bg-[#241219] border border-[var(--line)] p-1">
             <button
               type="button"
               onClick={() => setActiveTab('xp')}
-              className={`rounded-md py-1.5 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+              className={`rounded-full py-1.5 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'xp'
-                  ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 shadow-xs'
-                  : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+                  ? 'bg-crimson text-white shadow-xs'
+                  : 'text-[#5e4249] dark:text-[#ebc9cf] hover:text-crimson'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#B91C1C] dark:text-red-400" />
+              <Sparkles className="w-3.5 h-3.5" />
               Cao thủ XP (Toàn hệ thống)
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('exam')}
-              className={`rounded-md py-1.5 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+              className={`rounded-full py-1.5 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'exam'
-                  ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-100 shadow-xs'
-                  : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+                  ? 'bg-crimson text-white shadow-xs'
+                  : 'text-[#5e4249] dark:text-[#ebc9cf] hover:text-crimson'
               }`}
             >
-              <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <Trophy className="w-3.5 h-3.5" />
               Xếp hạng theo Đề thi
             </button>
           </div>
 
           {activeTab === 'exam' && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as 'ALL' | ExamType)}
-                className="rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 focus:border-red-700 focus:outline-none"
-              >
-                <option value="ALL">Tất cả kỳ thi</option>
-                {EXAM_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-
+            <div>
               <select
                 value={selectedExamId}
                 onChange={(e) => setSelectedExamId(e.target.value)}
-                className="sm:col-span-2 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-zinc-200 focus:border-red-700 focus:outline-none"
+                className="w-full rounded-full border border-[var(--line)] bg-white dark:bg-[#1d0f15] px-4 py-1.5 text-xs font-medium text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
               >
-                {filteredExamList.length === 0 ? (
-                  <option value="">Không có đề thi thuộc kỳ thi này</option>
+                {exams.length === 0 ? (
+                  <option value="">Chưa có đề thi TSA nào</option>
                 ) : (
-                  filteredExamList.map((ex) => (
+                  exams.map((ex) => (
                     <option key={ex.id} value={ex.id}>
-                      [{normalizeExamType(ex.exam_type)}] {ex.title}
+                      [TSA] {ex.title}
                     </option>
                   ))
                 )}
@@ -381,21 +351,21 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         {/* Body */}
         <div className="flex-1 p-5 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
           {isLoading ? (
-            <div className="py-12 text-center text-slate-500 dark:text-zinc-400">
-              <div className="inline-block w-6 h-6 border-2 border-[#B91C1C] border-t-transparent rounded-full animate-spin mb-2" />
+            <div className="py-12 text-center text-[#876870] dark:text-[#c49ba3]">
+              <div className="inline-block w-6 h-6 border-2 border-crimson border-t-transparent rounded-full animate-spin mb-2" />
               <p className="text-xs">Đang tải dữ liệu bảng xếp hạng...</p>
             </div>
           ) : errorMessage ? (
-            <div className="rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 p-4 text-xs text-red-700 dark:text-red-300">
+            <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 p-4 text-xs text-rose-700 dark:text-rose-300">
               Không thể tải bảng xếp hạng: {errorMessage}
             </div>
           ) : podiumEntries.length === 0 ? (
             <div className="py-12 text-center">
-              <Award className="w-10 h-10 text-slate-300 dark:text-zinc-700 mx-auto mb-2.5" />
-              <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">
+              <Award className="w-10 h-10 text-[#fbbac3] dark:text-[#dc263e]/50 mx-auto mb-2.5" />
+              <p className="text-sm font-medium text-[#2a161b] dark:text-[#fff2f4]">
                 Chưa có dữ liệu xếp hạng.
               </p>
-              <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1">
+              <p className="text-xs text-[#876870] dark:text-[#b88c95] mt-1">
                 Hãy hoàn thành bài thi để ghi danh trên bảng vàng Parabol.
               </p>
             </div>
@@ -410,17 +380,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
               {/* Rank 4+ Clean Table */}
               {activeTab === 'xp' && xpProfiles.length > 3 && (
-                <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
+                <div className="rounded-2xl border border-[var(--line)] overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                      <tr className="border-b border-[var(--line)] bg-[#fff6f7] dark:bg-[#241219] text-[11px] font-semibold uppercase tracking-wider text-[#876870] dark:text-[#c49ba3]">
                         <th className="py-2.5 px-3">Hạng</th>
-                        <th className="py-2.5 px-3">Thí sinh & Cấp bậc</th>
+                        <th className="py-2.5 px-3">Thí sinh &amp; Cấp bậc</th>
                         <th className="py-2.5 px-3 text-right">Số đề</th>
                         <th className="py-2.5 px-3 text-right">Tổng XP</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80 text-sm">
+                    <tbody className="divide-y divide-[var(--line)] text-sm">
                       {xpProfiles.slice(3, 50).map((prof, idx) => {
                         const rank = idx + 4;
                         const isMe = Boolean(currentUserId && prof.id === currentUserId);
@@ -429,11 +399,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                             key={prof.id}
                             className={
                               isMe
-                                ? 'bg-red-50/60 dark:bg-red-950/30 font-semibold'
-                                : 'hover:bg-slate-50/70 dark:hover:bg-zinc-800/40'
+                                ? 'bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 font-semibold'
+                                : 'hover:bg-[#fff5f6]/75 dark:hover:bg-white/5'
                             }
                           >
-                            <td className="py-2.5 px-3 text-xs font-mono text-slate-500">
+                            <td className="py-2.5 px-3 text-xs font-mono text-[#876870] dark:text-[#c49ba3]">
                               #{rank}
                             </td>
                             <td className="py-2.5 px-3">
@@ -442,30 +412,30 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                                   <img
                                     src={prof.avatar_url}
                                     alt={prof.full_name || 'Thí sinh'}
-                                    className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
+                                    className="w-7 h-7 rounded-full object-cover border border-[var(--line)] shrink-0"
                                     referrerPolicy="no-referrer"
                                   />
                                 ) : (
-                                  <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[11px] font-bold flex items-center justify-center shrink-0">
+                                  <div className="w-7 h-7 rounded-full bg-[#ffeff1] dark:bg-[#2e151e] text-crimson dark:text-[#fbbac3] text-[11px] font-bold flex items-center justify-center shrink-0">
                                     {getInitials(prof.full_name || 'U')}
                                   </div>
                                 )}
                                 <div className="flex flex-wrap items-center gap-2 min-w-0">
-                                  <span className="text-slate-800 dark:text-zinc-200 truncate max-w-[160px]">
-                                    {prof.full_name || 'Thí sinh ẩn danh'}
+                                  <span className="text-[#2a161b] dark:text-[#fff2f4] truncate max-w-[160px]">
+                                    {prof.full_name || 'Thí sinh Parabol'}
                                   </span>
-                                  <RankBadge xp={prof.xp ?? 0} compact />
+                                  <RankBadge xp={prof.xp} compact />
                                 </div>
                               </div>
                             </td>
-                            <td className="py-2.5 px-3 text-right text-xs font-mono text-slate-500 dark:text-zinc-400">
+                            <td className="py-2.5 px-3 text-right text-xs font-mono text-[#876870] dark:text-[#c49ba3]">
                               <span className="inline-flex items-center gap-1">
-                                <FileCheck2 className="w-3 h-3" />
-                                {prof.exams_completed ?? 0}
+                                <FileCheck2 className="w-3 h-3 text-crimson" />
+                                {prof.exams_completed}
                               </span>
                             </td>
-                            <td className="py-2.5 px-3 text-right font-bold font-mono text-slate-900 dark:text-zinc-100">
-                              {(prof.xp ?? 0).toLocaleString('vi-VN')}
+                            <td className="py-2.5 px-3 text-right font-bold font-mono text-crimson dark:text-[#fbbac3]">
+                              {prof.xp.toLocaleString('vi-VN')}
                             </td>
                           </tr>
                         );
@@ -476,18 +446,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               )}
 
               {activeTab === 'exam' && sortedExamAttempts.length > 3 && (
-                <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
+                <div className="rounded-2xl border border-[var(--line)] overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                      <tr className="border-b border-[var(--line)] bg-[#fff6f7] dark:bg-[#241219] text-[11px] font-semibold uppercase tracking-wider text-[#876870] dark:text-[#c49ba3]">
                         <th className="py-2.5 px-3">Hạng</th>
-                        <th className="py-2.5 px-3">Thí sinh & Cấp bậc</th>
+                        <th className="py-2.5 px-3">Thí sinh &amp; Cấp bậc</th>
                         <th className="py-2.5 px-3 text-right">Điểm (/100)</th>
                         <th className="py-2.5 px-3 text-right">Đúng</th>
                         <th className="py-2.5 px-3 text-right">Thời gian</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80 text-sm">
+                    <tbody className="divide-y divide-[var(--line)] text-sm">
                       {sortedExamAttempts.slice(3).map((item, idx) => {
                         const rank = idx + 4;
                         const profile = item.user_id
@@ -502,11 +472,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                             key={item.id ?? `${item.student_name}-${idx}`}
                             className={
                               isMe
-                                ? 'bg-red-50/60 dark:bg-red-950/30 font-semibold'
-                                : 'hover:bg-slate-50/70 dark:hover:bg-zinc-800/40'
+                                ? 'bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 font-semibold'
+                                : 'hover:bg-[#fff5f6]/75 dark:hover:bg-white/5'
                             }
                           >
-                            <td className="py-2.5 px-3 text-xs font-mono text-slate-500">
+                            <td className="py-2.5 px-3 text-xs font-mono text-[#876870] dark:text-[#c49ba3]">
                               #{rank}
                             </td>
                             <td className="py-2.5 px-3">
@@ -515,44 +485,43 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                                   <img
                                     src={item.avatar_url}
                                     alt={item.student_name}
-                                    className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
+                                    className="w-7 h-7 rounded-full object-cover border border-[var(--line)] shrink-0"
                                     referrerPolicy="no-referrer"
                                   />
                                 ) : (
-                                  <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[11px] font-bold flex items-center justify-center shrink-0">
+                                  <div className="w-7 h-7 rounded-full bg-[#ffeff1] dark:bg-[#2e151e] text-crimson dark:text-[#fbbac3] text-[11px] font-bold flex items-center justify-center shrink-0">
                                     {getInitials(item.student_name)}
                                   </div>
                                 )}
                                 <div className="flex flex-wrap items-center gap-2 min-w-0">
-                                  <span className="text-slate-800 dark:text-zinc-200 truncate max-w-[150px]">
-                                    {item.student_name || 'Thí sinh ẩn danh'}
+                                  <span className="text-[#2a161b] dark:text-[#fff2f4] truncate max-w-[150px]">
+                                    {item.student_name}
                                   </span>
                                   {(item.is_flagged || (item.violation_count ?? 0) > 3) && (
-                                    <span className="rounded bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-900 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-400">
+                                    <span className="rounded-full bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:text-rose-400">
                                       Vi phạm quy chế
                                     </span>
                                   )}
                                   {profile ? (
                                     <RankBadge xp={profile.xp} compact />
                                   ) : (
-                                    <span className="text-[10px] text-slate-400">
+                                    <span className="text-[10px] text-[#876870] dark:text-[#b88c95]">
                                       Khách
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </td>
-                            <td className="py-2.5 px-3 text-right font-bold font-mono text-slate-900 dark:text-zinc-100">
-                              {Number(item.score ?? 0).toFixed(2)}
+                            <td className="py-2.5 px-3 text-right font-bold font-mono text-crimson dark:text-[#fbbac3]">
+                              {Number(item.score).toFixed(2)}
                             </td>
-                            <td className="py-2.5 px-3 text-right text-xs font-mono text-slate-500">
+                            <td className="py-2.5 px-3 text-right text-xs font-mono text-[#876870] dark:text-[#c49ba3]">
                               {item.correct_count ?? '-'}/{item.total_questions ?? '-'}
                             </td>
-                            <td className="py-2.5 px-3 text-right text-xs font-mono text-slate-500 whitespace-nowrap">
+                            <td className="py-2.5 px-3 text-right text-xs font-mono text-[#876870] dark:text-[#c49ba3] whitespace-nowrap">
                               <span className="inline-flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {item.time_spent_seconds !== undefined &&
-                                item.time_spent_seconds !== null
+                                {item.time_spent_seconds !== undefined
                                   ? formatDuration(item.time_spent_seconds)
                                   : '--:--'}
                               </span>
@@ -568,30 +537,30 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           )}
         </div>
 
-        {/* Pinned "Thứ hạng của bạn" footer bar if user is outside Top 10 */}
+        {/* Pinned "Thứ hạng của bạn" footer bar */}
         {activeTab === 'xp' && myXpIndex >= 10 && (
-          <div className="px-6 py-3 border-t border-red-200/80 dark:border-red-900/60 bg-red-50/70 dark:bg-red-950/30 flex items-center justify-between text-xs shrink-0">
-            <span className="font-semibold text-slate-800 dark:text-zinc-200">
+          <div className="px-6 py-3 border-t border-[#dc263e]/25 bg-[#ffeff1]/85 dark:bg-[#dc263e]/20 flex items-center justify-between text-xs shrink-0">
+            <span className="font-semibold text-[#2a161b] dark:text-[#fff2f4]">
               Thứ hạng của bạn:{' '}
-              <span className="font-mono font-bold text-[#B91C1C] dark:text-red-400">
+              <span className="font-mono font-bold text-crimson dark:text-[#fbbac3]">
                 #{myXpIndex + 1}
               </span>
             </span>
-            <span className="font-mono font-bold text-slate-900 dark:text-zinc-100">
+            <span className="font-mono font-bold text-[#2a161b] dark:text-white">
               {xpProfiles[myXpIndex].xp.toLocaleString('vi-VN')} XP
             </span>
           </div>
         )}
 
         {activeTab === 'exam' && myExamIndex >= 10 && (
-          <div className="px-6 py-3 border-t border-red-200/80 dark:border-red-900/60 bg-red-50/70 dark:bg-red-950/30 flex items-center justify-between text-xs shrink-0">
-            <span className="font-semibold text-slate-800 dark:text-zinc-200">
+          <div className="px-6 py-3 border-t border-[#dc263e]/25 bg-[#ffeff1]/85 dark:bg-[#dc263e]/20 flex items-center justify-between text-xs shrink-0">
+            <span className="font-semibold text-[#2a161b] dark:text-[#fff2f4]">
               Thứ hạng của bạn:{' '}
-              <span className="font-mono font-bold text-[#B91C1C] dark:text-red-400">
+              <span className="font-mono font-bold text-crimson dark:text-[#fbbac3]">
                 #{myExamIndex + 1}
               </span>
             </span>
-            <span className="font-mono font-bold text-slate-900 dark:text-zinc-100">
+            <span className="font-mono font-bold text-[#2a161b] dark:text-white">
               {Number(attempts[myExamIndex].score).toFixed(2)} đ
             </span>
           </div>

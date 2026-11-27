@@ -23,7 +23,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
     const selected = typeof answer === 'string' ? answer : '';
     return (
       <div className="space-y-5">
-        <div className="text-slate-900 dark:text-zinc-100 leading-relaxed font-medium">
+        <div className="text-[#2a161b] dark:text-[#fff2f4] leading-relaxed font-medium">
           <MathText text={question.prompt} />
         </div>
 
@@ -33,20 +33,20 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
             const isCorrect = opt.id === question.correctOption;
 
             let cardStyle =
-              'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-50/70 dark:hover:bg-zinc-800/50';
+              'border-[var(--line)] bg-white/90 dark:bg-[#1d0f15]/80 hover:border-[#ef6c7e] dark:hover:border-[#ef6c7e]/60 hover:bg-[#fff5f6]/75 dark:hover:bg-[#2a141c]/80';
             if (readOnly) {
               if (isCorrect) {
                 cardStyle =
-                  'border-emerald-500/80 bg-emerald-50/70 dark:bg-emerald-950/30';
+                  'border-emerald-500/80 bg-emerald-50/75 dark:bg-emerald-950/35';
               } else if (isSelected && !isCorrect) {
-                cardStyle = 'border-red-500/80 bg-red-50/70 dark:bg-red-950/30';
+                cardStyle = 'border-rose-500/80 bg-rose-50/75 dark:bg-rose-950/35';
               } else {
                 cardStyle =
-                  'border-slate-200/60 dark:border-zinc-800/60 bg-slate-50/40 dark:bg-zinc-900/40 opacity-75';
+                  'border-[var(--line)] bg-[#fff9fa]/50 dark:bg-[#1b0d13]/40 opacity-75';
               }
             } else if (isSelected) {
               cardStyle =
-                'border-red-700 dark:border-red-500 bg-red-50/50 dark:bg-red-950/30 ring-1 ring-red-700/30';
+                'border-crimson bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 ring-1 ring-crimson/35 shadow-[0_10px_24px_-16px_rgba(220,38,62,0.4)]';
             }
 
             return (
@@ -55,25 +55,27 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 type="button"
                 disabled={readOnly}
                 onClick={() => onChange?.(opt.id)}
-                className={`w-full text-left rounded-xl border p-3.5 transition-all flex items-start gap-3 ${cardStyle}`}
+                className={`w-full text-left rounded-2xl border p-3.5 transition-all flex items-start gap-3 ${
+                  readOnly ? '' : 'cursor-pointer'
+                } ${cardStyle}`}
               >
                 <span
-                  className={`shrink-0 w-7 h-7 rounded-lg text-xs font-mono font-bold flex items-center justify-center border transition-colors ${
+                  className={`shrink-0 w-7 h-7 rounded-xl text-xs font-mono font-bold flex items-center justify-center border transition-colors ${
                     isSelected
-                      ? 'bg-red-700 text-white border-red-700'
-                      : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200/80 dark:border-zinc-700'
+                      ? 'bg-crimson text-white border-crimson'
+                      : 'bg-[#fff5f6] dark:bg-[#2a141c] text-[#5e4249] dark:text-[#fbbac3] border-[var(--line)]'
                   }`}
                 >
                   {opt.id}
                 </span>
-                <span className="flex-1 text-sm sm:text-[15px] text-slate-800 dark:text-zinc-200 pt-0.5 leading-relaxed">
+                <span className="flex-1 text-sm sm:text-[15px] text-[#2a161b] dark:text-[#fff2f4] pt-0.5 leading-relaxed">
                   <MathText text={opt.text} />
                 </span>
                 {readOnly && isCorrect && (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
                 )}
                 {readOnly && isSelected && !isCorrect && (
-                  <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-1" />
+                  <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-1" />
                 )}
               </button>
             );
@@ -98,17 +100,17 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
 
     return (
       <div className="space-y-5">
-        <div className="text-slate-900 dark:text-zinc-100 leading-relaxed font-medium">
+        <div className="text-[#2a161b] dark:text-[#fff2f4] leading-relaxed font-medium">
           <MathText text={question.prompt} />
         </div>
 
-        <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900">
-          <div className="grid grid-cols-[1fr_68px_68px] bg-slate-50 dark:bg-zinc-800/70 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400 border-b border-slate-200/80 dark:border-zinc-800">
+        <div className="rounded-2xl border border-[var(--line)] overflow-hidden bg-white/90 dark:bg-[#1d0f15]/80">
+          <div className="grid grid-cols-[1fr_72px_72px] bg-[#fff5f6] dark:bg-[#241219] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#876870] dark:text-[#c49ba3] border-b border-[var(--line)]">
             <span>Mệnh đề</span>
             <span className="text-center">Đúng</span>
             <span className="text-center">Sai</span>
           </div>
-          <div className="divide-y divide-slate-100 dark:divide-zinc-800">
+          <div className="divide-y divide-[var(--line)]">
             {(question.statements ?? []).map((stmt, idx) => {
               const chosen = userMap[stmt.id];
               const letter = String.fromCharCode(97 + idx);
@@ -117,16 +119,16 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
               return (
                 <div
                   key={stmt.id}
-                  className={`grid grid-cols-[1fr_68px_68px] items-center px-4 py-3 gap-2 ${
+                  className={`grid grid-cols-[1fr_72px_72px] items-center px-4 py-3 gap-2 ${
                     readOnly
                       ? isRowCorrect
-                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20'
-                        : 'bg-red-50/40 dark:bg-red-950/20'
-                      : 'hover:bg-slate-50/60 dark:hover:bg-zinc-800/40'
+                        ? 'bg-emerald-50/55 dark:bg-emerald-950/20'
+                        : 'bg-rose-50/45 dark:bg-rose-950/20'
+                      : 'hover:bg-[#fff5f6]/60 dark:hover:bg-white/5'
                   }`}
                 >
-                  <div className="text-sm sm:text-[15px] text-slate-800 dark:text-zinc-200 pr-2 leading-relaxed">
-                    <span className="font-mono font-semibold text-slate-400 dark:text-zinc-500 mr-1.5">
+                  <div className="text-sm sm:text-[15px] text-[#2a161b] dark:text-[#fff2f4] pr-2 leading-relaxed">
+                    <span className="font-mono font-semibold text-crimson dark:text-[#ef6c7e] mr-1.5">
                       {letter})
                     </span>
                     <MathText text={stmt.text} />
@@ -142,10 +144,12 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                       type="button"
                       disabled={readOnly}
                       onClick={() => toggleStatement(stmt.id, true)}
-                      className={`w-12 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      className={`w-14 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                        readOnly ? '' : 'cursor-pointer'
+                      } ${
                         chosen === true
-                          ? 'bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-slate-900 dark:border-zinc-100'
-                          : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200/80 dark:border-zinc-700 hover:border-slate-400'
+                          ? 'bg-crimson text-white border-crimson shadow-xs'
+                          : 'bg-white dark:bg-[#190c11] text-[#5e4249] dark:text-[#ebc9cf] border-[var(--line)] hover:border-crimson/60'
                       }`}
                     >
                       Đúng
@@ -157,10 +161,12 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                       type="button"
                       disabled={readOnly}
                       onClick={() => toggleStatement(stmt.id, false)}
-                      className={`w-12 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                      className={`w-14 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                        readOnly ? '' : 'cursor-pointer'
+                      } ${
                         chosen === false
-                          ? 'bg-red-700 text-white border-red-700'
-                          : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200/80 dark:border-zinc-700 hover:border-slate-400'
+                          ? 'bg-wine dark:bg-[#dc263e]/40 text-white border-wine dark:border-[#ef6c7e] shadow-xs'
+                          : 'bg-white dark:bg-[#190c11] text-[#5e4249] dark:text-[#ebc9cf] border-[var(--line)] hover:border-crimson/60'
                       }`}
                     >
                       Sai
@@ -207,7 +213,7 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
 
     return (
       <div className="space-y-5">
-        <div className="rounded-xl bg-slate-50/70 dark:bg-zinc-950/60 border border-slate-200/80 dark:border-zinc-800 p-4 sm:p-5 text-[15px] leading-8 text-slate-800 dark:text-zinc-200">
+        <div className="rounded-2xl bg-[#fff6f7]/85 dark:bg-[#1d0f15]/80 border border-[var(--line)] p-4 sm:p-5 text-[15px] leading-8 text-[#2a161b] dark:text-[#fff2f4]">
           {parts.map((part, idx) => {
             const match = part.match(/^\[\[([a-zA-Z0-9_-]+)\]\]$/);
             if (!match) {
@@ -246,16 +252,16 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                       ? 'Bấm để xóa từ đã chọn'
                       : 'Kéo từ vào đây hoặc chọn từ bên dưới rồi bấm vào ô này'
                 }
-                className={`inline-flex items-center gap-1 mx-1 px-3 py-0.5 rounded-lg border text-sm font-medium align-middle transition-all ${
+                className={`inline-flex items-center gap-1 mx-1 px-3 py-0.5 rounded-full border text-sm font-medium align-middle transition-all ${
                   readOnly
                     ? isCorrect
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
-                      : 'border-red-400 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300'
+                      : 'border-rose-400 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300'
                     : filledWord
-                      ? 'border-red-700 dark:border-red-500 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 cursor-pointer'
+                      ? 'border-crimson bg-[#ffeff1] dark:bg-[#dc263e]/25 text-[#b91c30] dark:text-[#fbbac3] cursor-pointer'
                       : selectedBankWord
-                        ? 'border-dashed border-red-600 bg-red-50/50 dark:bg-red-950/20 text-red-700 cursor-pointer'
-                        : 'border-dashed border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-400 min-w-[90px] justify-center'
+                        ? 'border-dashed border-crimson bg-[#ffeff1]/60 dark:bg-[#dc263e]/15 text-crimson cursor-pointer'
+                        : 'border-dashed border-[#ef6c7e] dark:border-[#ef6c7e]/45 bg-white dark:bg-[#190c11] text-[#876870] min-w-[96px] justify-center'
                 }`}
               >
                 {filledWord || 'Chỗ trống'}
@@ -270,8 +276,8 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
         </div>
 
         {!readOnly && (
-          <div className="rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-2.5">
+          <div className="rounded-2xl bg-white/90 dark:bg-[#1d0f15]/80 border border-[var(--line)] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#876870] dark:text-[#c49ba3] mb-2.5">
               Ngân hàng từ (kéo thả hoặc bấm chọn)
             </p>
             <div className="flex flex-wrap gap-2">
@@ -291,15 +297,15 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                       setSelectedBankWord((prev) => (prev === word ? null : word));
                     }}
                     disabled={isUsed}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium border transition-all ${
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium border transition-all ${
                       isUsed
-                        ? 'bg-slate-100 dark:bg-zinc-800/40 text-slate-400 dark:text-zinc-600 border-slate-200/60 dark:border-zinc-800 cursor-not-allowed line-through'
+                        ? 'bg-[#fff5f6] dark:bg-[#190c11] text-[#876870]/60 border-[var(--line)] cursor-not-allowed line-through'
                         : isSelected
-                          ? 'bg-red-700 text-white border-red-700'
-                          : 'bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 border-slate-200/80 dark:border-zinc-700 hover:border-slate-400 cursor-grab active:cursor-grabbing'
+                          ? 'bg-crimson text-white border-crimson shadow-xs cursor-pointer'
+                          : 'bg-[#fff6f7] dark:bg-[#2a141c] text-[#2a161b] dark:text-[#fff2f4] border-[var(--line)] hover:border-crimson/60 cursor-grab active:cursor-grabbing'
                     }`}
                   >
-                    <GripVertical className="w-3.5 h-3.5 opacity-40" />
+                    <GripVertical className="w-3.5 h-3.5 opacity-45" />
                     {word}
                   </button>
                 );
@@ -315,12 +321,12 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
   const textVal = typeof answer === 'string' ? answer : '';
   return (
     <div className="space-y-5">
-      <div className="text-slate-900 dark:text-zinc-100 leading-relaxed font-medium">
+      <div className="text-[#2a161b] dark:text-[#fff2f4] leading-relaxed font-medium">
         <MathText text={question.prompt} />
       </div>
 
       <div>
-        <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-2">
+        <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#876870] dark:text-[#c49ba3] mb-2">
           Đáp án của bạn
         </label>
         <input
@@ -329,10 +335,10 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
           value={textVal}
           onChange={(e) => onChange?.(e.target.value)}
           placeholder={question.placeholder || 'Nhập đáp án (số hoặc cụm từ ngắn)...'}
-          className={`w-full max-w-md rounded-lg border px-4 py-2.5 text-sm sm:text-base font-mono font-semibold focus:outline-none transition-colors ${
+          className={`w-full max-w-md rounded-2xl border px-4 py-2.5 text-sm sm:text-base font-mono font-semibold focus:outline-none transition-all ${
             readOnly
-              ? 'bg-slate-100 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300'
-              : 'bg-white dark:bg-zinc-950 border-slate-300 dark:border-zinc-700 text-slate-900 dark:text-zinc-100 focus:border-red-700 dark:focus:border-red-500'
+              ? 'bg-[#fff6f7] dark:bg-[#241219] border-[var(--line)] text-[#5e4249] dark:text-[#ebc9cf]'
+              : 'bg-white dark:bg-[#190c11] border-[var(--line)] text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:ring-2 focus:ring-crimson/15'
           }`}
         />
         {readOnly && (

@@ -9,11 +9,9 @@ import {
   FileText,
   LogOut,
   Maximize2,
-  Moon,
   Send,
   ShieldAlert,
   ShieldCheck,
-  Sun,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Exam, UserAnswers, UserAnswerValue } from '../types/exam';
@@ -23,6 +21,7 @@ import {
 } from '../utils/examSections';
 import { formatDuration, isQuestionAnswered } from '../utils/scoring';
 import { CalculatorModal } from './CalculatorModal';
+import { CloudBackdrop } from './CloudBackdrop';
 import { MathText } from './MathText';
 import { QuestionRenderer } from './QuestionRenderer';
 
@@ -30,8 +29,6 @@ interface ExamRoomProps {
   exam: Exam;
   studentName: string;
   targetSectionId?: string;
-  isDark: boolean;
-  onToggleDark: () => void;
   onSubmit: (
     answers: UserAnswers,
     timeSpentSeconds: number,
@@ -52,8 +49,6 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   exam,
   studentName,
   targetSectionId,
-  isDark,
-  onToggleDark,
   onSubmit,
   onExit,
 }) => {
@@ -69,7 +64,10 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const currentSection = activeSections[activeSectionIdx];
   const isLastSection = activeSectionIdx >= activeSections.length - 1;
-  const sectionQuestions = currentSection?.questions ?? [];
+  const sectionQuestions = useMemo(
+    () => currentSection?.questions ?? [],
+    [currentSection]
+  );
   const sectionTotalSeconds = Math.max(
     60,
     (currentSection?.duration_minutes ?? exam.duration_minutes) * 60
@@ -86,7 +84,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Anti-Cheat Proctoring state (active when exam.anti_cheat !== false)
+  // Anti-Cheat Proctoring state
   const antiCheatEnabled = exam.anti_cheat !== false;
   const [violationCount, setViolationCount] = useState(0);
   const [violationModal, setViolationModal] = useState<{
@@ -99,9 +97,18 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   const answersRef = useRef(answers);
   const remainingRef = useRef(remainingSeconds);
   const accumulatedRef = useRef(accumulatedSeconds);
-  answersRef.current = answers;
-  remainingRef.current = remainingSeconds;
-  accumulatedRef.current = accumulatedSeconds;
+
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
+  useEffect(() => {
+    remainingRef.current = remainingSeconds;
+  }, [remainingSeconds]);
+
+  useEffect(() => {
+    accumulatedRef.current = accumulatedSeconds;
+  }, [accumulatedSeconds]);
 
   // Resizable split-screen state
   const [leftWidthPct, setLeftWidthPct] = useState(48);
@@ -164,7 +171,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
     ]
   );
 
-  // Section countdown timer (paused during intermission)
+  // Section countdown timer
   useEffect(() => {
     if (intermissionSeconds !== null || isSubmitting) return;
     const timer = window.setInterval(() => {
@@ -182,7 +189,8 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   // Auto-submit / advance when section timer hits 0
   useEffect(() => {
     if (remainingSeconds === 0 && intermissionSeconds === null && !isSubmitting) {
-      completeCurrentSection(true);
+      const t = window.setTimeout(() => completeCurrentSection(true), 0);
+      return () => window.clearTimeout(t);
     }
   }, [remainingSeconds, intermissionSeconds, isSubmitting, completeCurrentSection]);
 
@@ -190,8 +198,8 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   useEffect(() => {
     if (intermissionSeconds === null) return;
     if (intermissionSeconds <= 0) {
-      advanceToNextSection();
-      return;
+      const t = window.setTimeout(() => advanceToNextSection(), 0);
+      return () => window.clearTimeout(t);
     }
     const t = window.setTimeout(() => {
       setIntermissionSeconds((s) => (s !== null ? s - 1 : null));
@@ -199,7 +207,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
     return () => window.clearTimeout(t);
   }, [intermissionSeconds, advanceToNextSection]);
 
-  // Keyboard shortcuts: Left / Right Arrow to navigate questions
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
@@ -301,7 +309,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
     ]
   );
 
-  // Layer 1: Enter Fullscreen on mount & exit on unmount
+  // Layer 1: Fullscreen
   useEffect(() => {
     if (!antiCheatEnabled) return;
     requestFullscreenSafe();
@@ -408,26 +416,27 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
   const isTimeLow = remainingSeconds <= 300;
 
-  // Intermission Screen (between sections)
+  // Intermission Screen
   if (intermissionSeconds !== null) {
     const nextSec = activeSections[activeSectionIdx + 1];
     return (
-      <div className="min-h-screen bg-[#FAFAFA] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-7 shadow-sm text-center space-y-5">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-2xl font-mono font-bold text-[#B91C1C] dark:text-red-400">
+      <div className="relative min-h-screen bg-white dark:bg-[#13090d] text-[#2a161b] dark:text-[#fff2f4] flex items-center justify-center p-4 overflow-hidden">
+        <CloudBackdrop withBottomFade={false} subtle />
+        <div className="relative glass-card w-full max-w-md rounded-[28px] p-8 text-center space-y-5">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#ffeff1] dark:bg-[#dc263e]/25 border border-[#dc263e]/35 text-2xl font-mono font-bold text-crimson dark:text-[#fbbac3] shadow-[0_12px_28px_-12px_rgba(220,38,62,0.42)]">
             {intermissionSeconds}
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-600 dark:text-teal-400">
               Đã hoàn thành {currentSection?.title}
             </p>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100">
+            <h2 className="text-lg font-semibold text-[#2a161b] dark:text-white">
               Chuẩn bị chuyển sang Phần {activeSectionIdx + 2}/{activeSections.length}
             </h2>
             {nextSec && (
-              <p className="text-sm text-slate-600 dark:text-zinc-400">
-                <strong className="text-slate-900 dark:text-zinc-200">
+              <p className="text-sm text-[#876870] dark:text-[#c49ba3]">
+                <strong className="text-[#2a161b] dark:text-[#fff2f4]">
                   {nextSec.title}
                 </strong>{' '}
                 · {nextSec.questions.length} câu · {nextSec.duration_minutes} phút
@@ -438,7 +447,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
           <button
             type="button"
             onClick={advanceToNextSection}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors"
+            className="btn btn-crimson w-full !py-2.5"
           >
             Bắt đầu ngay
             <ArrowRight className="w-4 h-4" />
@@ -450,30 +459,30 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
   return (
     <div
-      className={`h-screen flex flex-col bg-[#FAFAFA] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 overflow-hidden ${
+      className={`h-screen flex flex-col bg-[#fff7f8] dark:bg-[#13090d] text-[#2a161b] dark:text-[#fff2f4] overflow-hidden ${
         isDraggingDivider ? 'select-none cursor-col-resize' : ''
       }`}
     >
-      {/* Thin Minimalist Topbar (h-14) */}
-      <header className="shrink-0 h-14 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-4 flex items-center justify-between border-b border-slate-200/80 dark:border-zinc-800">
+      {/* Frosted Topbar */}
+      <header className="shrink-0 h-14 bg-white/85 dark:bg-[#190c11]/90 backdrop-blur-xl px-4 flex items-center justify-between border-b border-[var(--line)]">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onExit}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+            className="btn btn-pill btn-sm"
             title="Thoát phòng thi"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-3.5 h-3.5 text-[#5e4249] dark:text-[#fbbac3]" />
             <span className="hidden sm:inline">Thoát</span>
           </button>
           <div className="min-w-0">
-            <h1 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">
+            <h1 className="text-xs sm:text-sm font-semibold text-[#2a161b] dark:text-[#fff2f4] truncate">
               {activeSections.length > 1
                 ? `Phần ${activeSectionIdx + 1}/${activeSections.length}: ${currentSection?.title}`
                 : currentSection?.title || exam.title}
             </h1>
-            <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
+            <p className="text-[11px] text-[#876870] dark:text-[#c49ba3] truncate">
               {exam.title} · Thí sinh:{' '}
-              <span className="font-medium text-slate-700 dark:text-zinc-300">
+              <span className="font-medium text-crimson dark:text-[#fbbac3]">
                 {studentName}
               </span>
             </p>
@@ -483,12 +492,12 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
         <div className="flex items-center gap-2 shrink-0">
           {antiCheatEnabled && (
             <div
-              className={`hidden md:inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold ${
+              className={`hidden md:inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
                 violationCount === 0
-                  ? 'border-emerald-200 dark:border-emerald-900/70 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
+                  ? 'border-teal-300/60 dark:border-teal-800/70 bg-teal-50/80 dark:bg-teal-950/35 text-teal-700 dark:text-teal-300'
                   : violationCount < 3
                     ? 'border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300'
-                    : 'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-400'
+                    : 'border-rose-300 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400'
               }`}
               title="Trạng thái giám sát chống gian lận"
             >
@@ -502,39 +511,31 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
           )}
 
           <button
-            onClick={onToggleDark}
-            className="rounded-lg p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            title={isDark ? 'Chế độ Sáng' : 'Chế độ Tối'}
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-
-          <button
             onClick={() => setShowCalc((v) => !v)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+            className={`btn btn-sm ${
               showCalc
-                ? 'border-red-700 bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-400'
-                : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                ? 'bg-[#ffeff1] dark:bg-[#dc263e]/25 border border-crimson/40 text-crimson dark:text-[#fbbac3]'
+                : 'btn-pill'
             }`}
           >
-            <Calculator className="w-3.5 h-3.5" />
+            <Calculator className="w-3.5 h-3.5 text-crimson" />
             <span className="hidden sm:inline">Máy tính</span>
           </button>
 
           <div
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-sm font-mono font-semibold ${
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs sm:text-sm font-mono font-semibold ${
               isTimeLow
-                ? 'border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-400'
-                : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-200'
+                ? 'border-rose-400 dark:border-rose-700 bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 animate-pulse'
+                : 'border-[var(--line)] bg-white/90 dark:bg-[#241219] text-[#2a161b] dark:text-[#fff2f4]'
             }`}
           >
-            <Clock className="w-3.5 h-3.5" />
+            <Clock className="w-3.5 h-3.5 text-crimson" />
             {formatDuration(remainingSeconds)}
           </div>
 
           <button
             onClick={() => setConfirmSubmitOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#B91C1C] hover:bg-red-800 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors"
+            className="btn btn-crimson btn-sm"
           >
             <Send className="w-3.5 h-3.5" />
             {isLastSection ? 'Nộp bài' : 'Nộp phần này'}
@@ -554,17 +555,17 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
             <>
               <section
                 style={{ '--left-w': `${leftWidthPct}%` } as React.CSSProperties}
-                className="w-full md:w-[var(--left-w)] h-1/2 md:h-full shrink-0 bg-white dark:bg-zinc-900 border-b md:border-b-0 border-slate-200/80 dark:border-zinc-800 overflow-y-auto custom-scrollbar p-6 sm:p-8"
+                className="w-full md:w-[var(--left-w)] h-1/2 md:h-full shrink-0 bg-white/90 dark:bg-[#1b0d13]/90 border-b md:border-b-0 border-[var(--line)] overflow-y-auto custom-scrollbar p-6 sm:p-8"
               >
                 <div className="max-w-2xl mx-auto">
-                  <div className="inline-flex items-center gap-1.5 rounded-md border border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/60 px-2.5 py-1 text-[11px] font-medium text-slate-600 dark:text-zinc-300 mb-3">
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-[#dc263e]/25 bg-[#ffeff1]/85 dark:bg-[#dc263e]/20 px-3 py-1 text-[11px] font-medium text-[#b91c30] dark:text-[#fbbac3] mb-3">
                     <FileText className="w-3 h-3" />
                     {currentPassage.section || currentQuestion.section}
                   </div>
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100 mb-4 pb-3 border-b border-slate-100 dark:border-zinc-800">
+                  <h2 className="text-lg font-semibold text-[#2a161b] dark:text-white mb-4 pb-3 border-b border-[var(--line)]">
                     <MathText text={currentPassage.title} />
                   </h2>
-                  <div className="text-[15px] leading-relaxed text-slate-700 dark:text-zinc-300">
+                  <div className="text-[15px] leading-relaxed text-[#5e4249] dark:text-[#ebc9cf]">
                     <MathText text={currentPassage.content} />
                   </div>
                 </div>
@@ -575,36 +576,38 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                 aria-orientation="vertical"
                 onPointerDown={() => setIsDraggingDivider(true)}
                 title="Kéo để thay đổi kích thước khung ngữ liệu"
-                className="hidden md:flex w-1.5 shrink-0 cursor-col-resize items-center justify-center bg-slate-200/70 dark:bg-zinc-800 hover:bg-red-700/40 dark:hover:bg-red-600/40 transition-colors group"
+                className="hidden md:flex w-1.5 shrink-0 cursor-col-resize items-center justify-center bg-[#f4d5da]/70 dark:bg-[#381823] hover:bg-crimson/40 transition-colors group"
               >
-                <div className="w-0.5 h-8 rounded-full bg-slate-400/60 dark:bg-zinc-600 group-hover:bg-red-700" />
+                <div className="w-0.5 h-8 rounded-full bg-[#ef6c7e]/60 group-hover:bg-crimson" />
               </div>
             </>
           )}
 
           {/* Question & Answer Pane */}
           <section
-            className={`flex-1 min-w-0 bg-[#FAFAFA] dark:bg-zinc-950 overflow-y-auto custom-scrollbar flex flex-col justify-between ${
+            className={`relative flex-1 min-w-0 bg-[#fff7f8] dark:bg-[#13090d] overflow-y-auto custom-scrollbar flex flex-col justify-between ${
               showSplitScreen ? 'p-5 sm:p-7' : 'p-4 sm:p-8 lg:p-10'
             }`}
           >
+            {!showSplitScreen && <div className="grid-mist pointer-events-none absolute inset-0 opacity-60" />}
+
             {currentQuestion && (
               <div
                 className={
                   showSplitScreen
-                    ? 'w-full max-w-2xl mx-auto'
-                    : 'max-w-4xl mx-auto w-full rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-xs p-6 sm:p-9'
+                    ? 'relative w-full max-w-2xl mx-auto'
+                    : 'relative glass-card max-w-4xl mx-auto w-full rounded-[26px] p-6 sm:p-9'
                 }
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-6 pb-3.5 border-b border-slate-200/80 dark:border-zinc-800">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-6 pb-3.5 border-b border-[var(--line)]">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-md bg-slate-900 dark:bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-white dark:text-zinc-900 font-mono">
+                    <span className="rounded-full bg-crimson px-3 py-1 text-xs font-semibold text-white font-mono">
                       Câu {currentIndex + 1}/{sectionQuestions.length}
                     </span>
-                    <span className="rounded-md border border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/70 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-zinc-300">
+                    <span className="rounded-full border border-[var(--line)] bg-white/85 dark:bg-[#241219] px-3 py-1 text-xs font-medium text-[#5e4249] dark:text-[#ebc9cf]">
                       {currentQuestion.section}
                     </span>
-                    <span className="text-xs text-slate-400 dark:text-zinc-500">
+                    <span className="text-xs text-[#876870] dark:text-[#c49ba3]">
                       • {QUESTION_TYPE_LABEL[currentQuestion.type] ?? currentQuestion.type}
                     </span>
                   </div>
@@ -612,10 +615,10 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleFlag(currentQuestion.id)}
-                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium border transition-colors ${
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
                       flagged[currentQuestion.id]
-                        ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                        : 'bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                        ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300'
+                        : 'bg-white/90 dark:bg-[#241219] border-[var(--line)] text-[#5e4249] dark:text-[#ebc9cf] hover:border-crimson/50'
                     }`}
                   >
                     <Bookmark
@@ -641,7 +644,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
             {/* Bottom Prev / Next */}
             <div
-              className={`mt-6 pt-4 border-t border-slate-200/80 dark:border-zinc-800 flex items-center justify-between ${
+              className={`relative mt-6 pt-4 border-t border-[var(--line)] flex items-center justify-between ${
                 showSplitScreen ? 'max-w-2xl mx-auto w-full' : 'max-w-4xl mx-auto w-full'
               }`}
             >
@@ -649,13 +652,13 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                 type="button"
                 disabled={currentIndex === 0}
                 onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+                className="btn btn-pill btn-sm"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Câu trước
               </button>
 
-              <span className="hidden sm:inline text-[11px] text-slate-400 dark:text-zinc-500">
+              <span className="hidden sm:inline text-[11px] text-[#876870] dark:text-[#b88c95]">
                 Phím tắt: ← / → để chuyển câu
               </span>
 
@@ -665,7 +668,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                 onClick={() =>
                   setCurrentIndex((i) => Math.min(sectionQuestions.length - 1, i + 1))
                 }
-                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-zinc-100 px-4 py-2 text-xs sm:text-sm font-semibold text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 disabled:opacity-40 transition-colors"
+                className="btn btn-crimson btn-sm"
               >
                 Câu tiếp
                 <ChevronRight className="w-4 h-4" />
@@ -674,13 +677,13 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
           </section>
         </div>
 
-        {/* Question Navigator Sidebar (current section) */}
-        <aside className="shrink-0 lg:w-60 border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 overflow-y-auto custom-scrollbar">
+        {/* Question Navigator Sidebar */}
+        <aside className="shrink-0 lg:w-64 border-t lg:border-t-0 lg:border-l border-[var(--line)] bg-white/90 dark:bg-[#190c11]/90 backdrop-blur-md p-4 overflow-y-auto custom-scrollbar">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#876870] dark:text-[#b88c95]">
               Câu hỏi phần này
             </h3>
-            <span className="text-xs font-mono font-semibold text-slate-700 dark:text-zinc-300">
+            <span className="text-xs font-mono font-semibold text-crimson dark:text-[#fbbac3]">
               {answeredInSection}/{sectionQuestions.length}
             </span>
           </div>
@@ -696,28 +699,28 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                   key={q.id}
                   type="button"
                   onClick={() => setCurrentIndex(idx)}
-                  className={`relative h-9 rounded-lg border text-xs font-mono font-semibold transition-all ${
+                  className={`relative h-9 rounded-xl border text-xs font-mono font-semibold transition-all cursor-pointer ${
                     isCurrent
-                      ? 'border-red-700 dark:border-red-500 bg-red-50/70 dark:bg-red-950/40 text-red-700 dark:text-red-400'
+                      ? 'border-crimson bg-[#ffeff1] dark:bg-[#dc263e]/30 text-crimson dark:text-white shadow-xs'
                       : isDone
-                        ? 'border-slate-300 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100'
-                        : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700'
+                        ? 'border-[#fbbac3] dark:border-[#ef6c7e]/40 bg-[#fff5f6] dark:bg-[#241219] text-[#2a161b] dark:text-[#fff2f4]'
+                        : 'border-[var(--line)] bg-white dark:bg-[#1b0d13] text-[#876870] dark:text-[#b88c95] hover:border-crimson/50'
                   }`}
                 >
                   {idx + 1}
                   {isFlag ? (
                     <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-500" />
                   ) : isDone ? (
-                    <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-teal-500" />
                   ) : null}
                 </button>
               );
             })}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800 space-y-1.5 text-[11px] text-slate-500 dark:text-zinc-400">
+          <div className="mt-4 pt-3 border-t border-[var(--line)] space-y-1.5 text-[11px] text-[#876870] dark:text-[#b88c95]">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="w-2 h-2 rounded-full bg-teal-500" />
               Đã làm
             </div>
             <div className="flex items-center gap-2">
@@ -725,7 +728,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
               Đánh dấu xem lại
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full border border-slate-300 dark:border-zinc-600" />
+              <span className="w-2 h-2 rounded-full border border-[#ef6c7e]" />
               Chưa làm
             </div>
           </div>
@@ -737,34 +740,34 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
       {/* Submit Section / Exam Confirmation Modal */}
       {confirmSubmitOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl border border-slate-200/80 dark:border-zinc-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#261118]/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-[26px] bg-white/95 dark:bg-[#1b0d13]/95 backdrop-blur-2xl p-6 shadow-[0_32px_90px_-28px_rgba(38,17,24,0.45)] border border-[var(--line)]">
             <div className="flex items-center gap-2.5 mb-3">
-              <AlertTriangle className="w-5 h-5 text-[#B91C1C] dark:text-red-500 shrink-0" />
-              <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
+              <AlertTriangle className="w-5 h-5 text-crimson shrink-0" />
+              <h3 className="text-base font-semibold text-[#2a161b] dark:text-[#fff2f4]">
                 {isLastSection
                   ? 'Xác nhận nộp bài & Xem kết quả'
                   : `Xác nhận nộp ${currentSection?.title}?`}
               </h3>
             </div>
-            <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed">
+            <p className="text-sm text-[#5e4249] dark:text-[#ebc9cf] leading-relaxed">
               Bạn đã làm{' '}
-              <span className="font-semibold text-slate-900 dark:text-zinc-100 font-mono">
+              <span className="font-semibold text-[#2a161b] dark:text-white font-mono">
                 {answeredInSection}/{sectionQuestions.length}
               </span>{' '}
               câu trong phần này. Thời gian còn lại:{' '}
-              <span className="font-semibold text-[#B91C1C] dark:text-red-400 font-mono">
+              <span className="font-semibold text-crimson dark:text-[#fbbac3] font-mono">
                 {formatDuration(remainingSeconds)}
               </span>
               .
               {!isLastSection &&
                 ' Sau khi nộp, đáp án phần này sẽ được khóa và chuyển sang phần tiếp theo.'}
             </p>
-            <div className="mt-6 flex items-center justify-end gap-2">
+            <div className="mt-6 flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setConfirmSubmitOpen(false)}
-                className="rounded-lg border border-slate-200/80 dark:border-zinc-700 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+                className="btn btn-pill btn-sm"
               >
                 Làm tiếp
               </button>
@@ -772,7 +775,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                 type="button"
                 onClick={() => completeCurrentSection(false)}
                 disabled={isSubmitting}
-                className="rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition-colors"
+                className="btn btn-crimson btn-sm"
               >
                 {isLastSection ? 'Nộp bài & Xem kết quả' : 'Nộp phần này'}
               </button>
@@ -780,24 +783,25 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
           </div>
         </div>
       )}
+
       {/* Anti-Cheat Violation Warning Modal */}
       {violationModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-red-950/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-2xl border-2 border-red-600 dark:border-red-500">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#261118]/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-[26px] bg-white/95 dark:bg-[#1b0d13]/95 backdrop-blur-2xl p-6 shadow-2xl border-2 border-rose-500">
             <div className="flex items-center gap-2.5 mb-3">
-              <ShieldAlert className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0" />
-              <h3 className="text-base font-bold text-red-700 dark:text-red-400">
+              <ShieldAlert className="w-6 h-6 text-rose-600 dark:text-rose-400 shrink-0" />
+              <h3 className="text-base font-bold text-rose-700 dark:text-rose-400">
                 Cảnh báo vi phạm quy chế ({violationModal.count}/3)
               </h3>
             </div>
-            <p className="text-sm text-slate-700 dark:text-zinc-300 leading-relaxed">
+            <p className="text-sm text-[#5e4249] dark:text-[#ebc9cf] leading-relaxed">
               Lý do:{' '}
-              <span className="font-semibold text-slate-900 dark:text-zinc-100">
+              <span className="font-semibold text-[#2a161b] dark:text-white">
                 {violationModal.reason}
               </span>
               .
             </p>
-            <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">
+            <p className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400">
               Còn {Math.max(0, 3 - violationModal.count)} lần cảnh báo. Nếu vượt quá 3 lần
               vi phạm, hệ thống sẽ tự động khóa bài và nộp bài ngay lập tức!
             </p>
@@ -808,7 +812,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                   requestFullscreenSafe();
                   setViolationModal(null);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 hover:bg-rose-700 px-4 py-2 text-xs font-semibold text-white transition-colors cursor-pointer"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
                 {violationModal.needsFullscreen

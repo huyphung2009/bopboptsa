@@ -2,28 +2,34 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
   ArrowRight,
   Award,
-  BarChart3,
+  BookOpen,
+  Check,
   Clock,
   FileText,
+  Layers,
   LogOut,
-  Moon,
+  Menu,
   RefreshCw,
+  Search,
   Shield,
-  Sun,
   Trophy,
+  X,
 } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import cardImage2 from '../../image/ảnh 2.png';
 import type { UserProfile } from '../lib/profileService';
-import type { Exam, ExamType } from '../types/exam';
-import { EXAM_TYPES, getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
+import type { Exam } from '../types/exam';
+import { resolveExamSections } from '../utils/examSections';
+import { getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
 import { AuthModal } from './AuthModal';
+import { CloudBackdrop } from './CloudBackdrop';
 import { ExamModeModal } from './ExamModeModal';
 import { LeaderboardModal } from './LeaderboardModal';
 import { Logo } from './Logo';
-import { MyScoreboardModal } from './MyScoreboardModal';
+import { MistTyper } from './MistTyper';
+import { ParticleCanvas } from './ParticleCanvas';
 import { RankBadge, XpProgressBar } from './RankBadge';
 import { RanksModal } from './RanksModal';
-import { resolveExamSections } from '../utils/examSections';
 
 interface HomePageProps {
   exams: Exam[];
@@ -34,8 +40,6 @@ interface HomePageProps {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   studentName: string;
-  isDark: boolean;
-  onToggleDark: () => void;
   onChangeStudentName: (name: string) => void;
   onStartExam: (exam: Exam, targetSectionId?: string) => void;
   onRefresh: () => void;
@@ -43,6 +47,16 @@ interface HomePageProps {
   onSignOut: () => void;
   leaderboardRefreshKey: number;
 }
+
+type SectionFilter = 'ALL' | 'Tổng hợp' | 'Tư duy Toán học' | 'Tư duy Đọc hiểu' | 'Tư duy Khoa học';
+
+const TSA_SECTION_FILTERS: { value: SectionFilter; label: string }[] = [
+  { value: 'ALL', label: 'Tất cả' },
+  { value: 'Tổng hợp', label: 'Đề tổng hợp' },
+  { value: 'Tư duy Toán học', label: 'Tư duy Toán học' },
+  { value: 'Tư duy Đọc hiểu', label: 'Tư duy Đọc hiểu' },
+  { value: 'Tư duy Khoa học', label: 'Tư duy Khoa học' },
+];
 
 export const HomePage: React.FC<HomePageProps> = ({
   exams,
@@ -53,8 +67,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   isAdmin,
   isSuperAdmin,
   studentName,
-  isDark,
-  onToggleDark,
   onChangeStudentName,
   onStartExam,
   onRefresh,
@@ -66,16 +78,60 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [leaderboardInitialTab, setLeaderboardInitialTab] = useState<'xp' | 'exam'>('xp');
   const [leaderboardExam, setLeaderboardExam] = useState<Exam | null>(null);
   const [ranksModalOpen, setRanksModalOpen] = useState(false);
-  const [scoreboardOpen, setScoreboardOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
   const [modeSelectExam, setModeSelectExam] = useState<Exam | null>(null);
-  const [selectedExamType, setSelectedExamType] = useState<'ALL' | ExamType>('ALL');
+
+  const [selectedSection, setSelectedSection] = useState<SectionFilter>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [onlyProctored, setOnlyProctored] = useState(false);
+  const [onlyMultiSection, setOnlyMultiSection] = useState(false);
+
+  const [scrolled, setScrolled] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 18);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const filteredExams = useMemo(() => {
-    if (selectedExamType === 'ALL') return exams;
-    return exams.filter((e) => normalizeExamType(e.exam_type) === selectedExamType);
-  }, [exams, selectedExamType]);
+    const query = searchQuery.trim().toLowerCase();
+    return exams.filter((exam) => {
+      if (selectedSection !== 'ALL') {
+        const secLower = (exam.section ?? '').toLowerCase();
+        if (selectedSection === 'Tổng hợp') {
+          if (!secLower.includes('tổng hợp') && resolveExamSections(exam).length <= 1) {
+            return false;
+          }
+        } else {
+          const keyword =
+            selectedSection === 'Tư duy Toán học'
+              ? 'toán'
+              : selectedSection === 'Tư duy Đọc hiểu'
+                ? 'đọc'
+                : 'khoa học';
+          const hasSectionMatch =
+            secLower.includes(keyword) ||
+            exam.questions.some((q) => q.section.toLowerCase().includes(keyword));
+          if (!hasSectionMatch) return false;
+        }
+      }
+      if (onlyProctored && exam.anti_cheat === false) {
+        return false;
+      }
+      if (onlyMultiSection && resolveExamSections(exam).length <= 1) {
+        return false;
+      }
+      if (query) {
+        const haystack = `${exam.title} ${exam.description} ${exam.section ?? ''} TSA`.toLowerCase();
+        return haystack.includes(query);
+      }
+      return true;
+    });
+  }, [exams, selectedSection, searchQuery, onlyProctored, onlyMultiSection]);
 
   const userAvatar = user?.user_metadata?.avatar_url as string | undefined;
   const userDisplayName =
@@ -102,20 +158,49 @@ export const HomePage: React.FC<HomePageProps> = ({
     setAuthModalOpen(true);
   };
 
-  return (
-    <div className="min-h-screen flex flex-col bg-[#FAFAFA] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100">
-      {/* Frosted-Glass Minimalist Header */}
-      <header className="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-zinc-950/80 border-b border-slate-200/80 dark:border-zinc-800">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="flex items-center gap-2.5 shrink-0">
-              <Logo className="w-6 h-6 shrink-0 text-slate-900 dark:text-zinc-100" />
-              <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-                Parabol
-              </span>
-            </div>
+  const scrollToSection = (id: string) => {
+    setDrawerOpen(false);
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
-            <nav className="flex items-center gap-1">
+  return (
+    <div id="top" className="min-h-screen flex flex-col bg-white dark:bg-[#13090d] text-[#2a161b] dark:text-[#fff2f4]">
+      {/* ============================================================
+          FLOATING CAPSULE HEADER (LIKE IMAGE 2)
+         ============================================================ */}
+      <header
+        className={`site-header fixed top-0 inset-x-0 z-40 px-3 sm:px-6 pt-3 sm:pt-4 pointer-events-none ${
+          scrolled ? 'is-scrolled' : ''
+        }`}
+      >
+        <div className="pointer-events-auto mx-auto flex h-[54px] sm:h-[58px] max-w-[1220px] items-center justify-between gap-3 rounded-full site-nav-pill pl-4 sm:pl-6 pr-2 sm:pr-2.5">
+          {/* Left: Brand + Desktop Navigation */}
+          <div className="flex items-center gap-5 lg:gap-7 min-w-0">
+            <a
+              href="#top"
+              onClick={(e) => {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="flex items-center gap-2.5 rounded-full py-1 pr-1 shrink-0 group"
+            >
+              <Logo className="w-6 h-6 sm:w-7 sm:h-7 transition-transform duration-300 group-hover:scale-105 text-[#2a161b]" />
+              <span className="text-[15.5px] font-semibold tracking-[-0.02em] text-crimson">
+                parabol
+              </span>
+            </a>
+
+            <nav className="hidden lg:flex items-center gap-0.5" aria-label="Điều hướng chính">
+              <button
+                type="button"
+                onClick={() => scrollToSection('exam-library')}
+                className="rounded-full px-3 py-1.5 text-[13.5px] text-[#5e4249] hover:bg-[#fff5f6] hover:text-crimson transition-all cursor-pointer"
+              >
+                Kho đề thi
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -123,77 +208,67 @@ export const HomePage: React.FC<HomePageProps> = ({
                   setLeaderboardInitialTab('xp');
                   setLeaderboardOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13.5px] text-[#5e4249] hover:bg-[#fff5f6] hover:text-crimson transition-all cursor-pointer"
               >
                 <Trophy className="w-3.5 h-3.5 text-amber-500" />
-                <span className="hidden sm:inline">Bảng xếp hạng</span>
+                Bảng xếp hạng
               </button>
               <button
                 type="button"
                 onClick={() => setRanksModalOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13.5px] text-[#5e4249] hover:bg-[#fff5f6] hover:text-crimson transition-all cursor-pointer"
               >
-                <Award className="w-3.5 h-3.5 text-[#B91C1C] dark:text-red-400" />
-                <span className="hidden sm:inline">Cấp bậc & Danh hiệu</span>
+                <Award className="w-3.5 h-3.5 text-crimson" />
+                Cấp bậc &amp; Danh hiệu
               </button>
               <button
                 type="button"
-                onClick={() => setScoreboardOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
+                onClick={() => scrollToSection('manifesto')}
+                className="rounded-full px-3 py-1.5 text-[13.5px] text-[#5e4249] hover:bg-[#fff5f6] hover:text-crimson transition-all cursor-pointer"
               >
-                <BarChart3 className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
-                <span className="hidden sm:inline">Bảng điểm</span>
+                Giới thiệu
               </button>
             </nav>
           </div>
 
+          {/* Right Controls */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
-              onClick={onToggleDark}
-              className="rounded-lg p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              title={isDark ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối'}
-              aria-label="Chuyển giao diện Sáng/Tối"
-            >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-
-            <button
+              type="button"
               onClick={onOpenAdmin}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`hidden sm:inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all cursor-pointer ${
                 isAdmin || isSuperAdmin
-                  ? 'border-red-200 dark:border-red-900/70 bg-red-50/70 dark:bg-red-950/30 text-red-700 dark:text-red-400 hover:bg-red-100/70'
-                  : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                  ? 'bg-[#ffeff1] text-[#b91c30] hover:bg-[#ffe0e4]'
+                  : 'text-[#5e4249] hover:bg-[#fff5f6] hover:text-crimson'
               }`}
             >
-              <Shield className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">
-                {isSuperAdmin ? 'Super Admin' : 'Quản trị'}
-              </span>
+              <Shield className="w-3.5 h-3.5 text-crimson" />
+              <span>{isSuperAdmin ? 'Super Admin' : 'Quản trị'}</span>
             </button>
 
             {user ? (
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-1.5 pr-2 py-1">
+              <div className="flex items-center gap-2 rounded-full border border-[var(--line)] bg-[#fff6f7]/90 pl-1.5 pr-2 py-1 shadow-xs">
                 <button
                   type="button"
                   onClick={() => setRanksModalOpen(true)}
-                  className="flex items-center gap-2.5 text-left hover:opacity-85 transition-opacity"
+                  className="flex items-center gap-2 text-left hover:opacity-85 transition-opacity cursor-pointer"
                   title="Xem Hồ sơ Cấp bậc & XP"
                 >
                   {userAvatar ? (
                     <img
                       src={userAvatar}
                       alt={userDisplayName}
-                      className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
+                      className="w-7 h-7 rounded-full object-cover border border-[var(--line)] shrink-0"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="w-7 h-7 rounded-full bg-red-700 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-crimson text-white text-[11px] font-bold flex items-center justify-center shrink-0">
                       {(userDisplayName[0] || 'U').toUpperCase()}
                     </div>
                   )}
-                  <div className="hidden md:flex flex-col min-w-[120px] max-w-[180px] gap-0.5">
+                  <div className="hidden md:flex flex-col min-w-[115px] max-w-[170px] gap-0.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                      <span className="text-xs font-semibold text-[#2a161b] truncate">
                         {userDisplayName}
                       </span>
                       <RankBadge xp={profile?.xp ?? 0} compact />
@@ -203,7 +278,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </button>
                 <button
                   onClick={onSignOut}
-                  className="rounded-md p-1 text-slate-400 hover:text-red-700 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                  className="rounded-full p-1.5 text-[#876870] hover:text-crimson hover:bg-[#ffeff1] transition-colors cursor-pointer"
                   title="Đăng xuất"
                   aria-label="Đăng xuất"
                 >
@@ -216,204 +291,623 @@ export const HomePage: React.FC<HomePageProps> = ({
                   setPendingExam(null);
                   setAuthModalOpen(true);
                 }}
-                className="inline-flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 transition-colors"
+                className="btn btn-crimson !py-2.5 !px-4 !text-[13px]"
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" aria-hidden="true">
+                <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                   <path
-                    fill="#4285F4"
-                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"
+                    fill="#ffffff"
+                    d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81Z"
                   />
                 </svg>
-                <span className="hidden sm:inline">Đăng nhập bằng Google</span>
+                <span className="hidden sm:inline">Đăng nhập Google</span>
                 <span className="sm:hidden">Đăng nhập</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className="lg:hidden grid h-9 w-9 place-items-center rounded-full bg-[#fff5f6] border border-[var(--line)] text-[#2a161b] hover:border-crimson/50 transition cursor-pointer"
+              aria-label="Mở menu"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Minimalist Intro */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-14">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-8 border-b border-slate-200/80 dark:border-zinc-800">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-red-700 dark:text-red-500 mb-2">
-              Nền tảng luyện thi đánh giá năng lực & tư duy trực tuyến
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-zinc-50">
-              Kho đề thi Parabol
+      {/* Mobile Drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-[#261118]/35 backdrop-blur-sm"
+            onClick={() => setDrawerOpen(false)}
+          />
+          <div className="absolute right-0 top-0 h-full w-[86%] max-w-[360px] bg-white/95 dark:bg-[#190c11]/95 backdrop-blur-2xl px-6 pb-10 pt-5 shadow-2xl border-l border-[var(--line)] flex flex-col">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Logo className="w-6 h-6 text-[#2a161b] dark:text-[#fbbac3]" />
+                <span className="text-[15px] font-semibold text-crimson">parabol</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="grid h-9 w-9 place-items-center rounded-full hover:bg-[#fff5f6] dark:hover:bg-white/10 text-[#5e4249] dark:text-[#ebc9cf]"
+                aria-label="Đóng menu"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <nav className="mt-7 space-y-1.5 flex-1">
+              <button
+                type="button"
+                onClick={() => scrollToSection('exam-library')}
+                className="w-full text-left rounded-2xl px-3.5 py-3 text-[15px] text-[#5e4249] dark:text-[#ebc9cf] hover:bg-[#fff5f6] dark:hover:bg-white/5 hover:text-crimson transition"
+              >
+                Kho đề thi
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  setLeaderboardExam(null);
+                  setLeaderboardInitialTab('xp');
+                  setLeaderboardOpen(true);
+                }}
+                className="w-full text-left rounded-2xl px-3.5 py-3 text-[15px] text-[#5e4249] dark:text-[#ebc9cf] hover:bg-[#fff5f6] dark:hover:bg-white/5 hover:text-crimson transition"
+              >
+                Bảng xếp hạng
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  setRanksModalOpen(true);
+                }}
+                className="w-full text-left rounded-2xl px-3.5 py-3 text-[15px] text-[#5e4249] dark:text-[#ebc9cf] hover:bg-[#fff5f6] dark:hover:bg-white/5 hover:text-crimson transition"
+              >
+                Cấp bậc &amp; Danh hiệu
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  onOpenAdmin();
+                }}
+                className="w-full text-left rounded-2xl px-3.5 py-3 text-[15px] text-[#5e4249] hover:bg-[#fff5f6] hover:text-crimson transition"
+              >
+                {isSuperAdmin ? 'Super Admin' : 'Quản trị đề thi'}
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          HERO — WHITE-ROSE CLOUD ATMOSPHERE + PARTICLES + PILLS
+         ============================================================ */}
+      <section className="relative overflow-hidden pt-28 pb-16 sm:pt-36 sm:pb-24">
+        <CloudBackdrop />
+        <ParticleCanvas />
+
+        <div className="relative mx-auto max-w-[1040px] px-4 sm:px-6">
+          <div className="mx-auto max-w-[780px] text-center">
+            {/* Typing Display Headline with Crimson-Mist Cursor */}
+            <h1 className="mx-auto mt-2 max-w-[820px] text-[clamp(2rem,5vw,3.55rem)] font-normal leading-[1.12] tracking-[-0.032em] text-[#2a161b]">
+              <MistTyper
+                text="Chinh phục mọi kỳ thi đánh giá tư duy"
+                baseDelay={42}
+                jitter={20}
+                startDelay={180}
+              />
             </h1>
-            <p className="mt-1.5 text-sm text-slate-500 dark:text-zinc-400 max-w-xl leading-relaxed">
-              Không gian luyện thi tối giản cho TSA, HSA, V-ACT, QDA, V-SAT và BCA với công
-              thức KaTeX sắc nét và bảng xếp hạng trực tuyến.
+
+            <p className="mx-auto mt-4 max-w-[560px] text-[14.5px] sm:text-[15.5px] leading-relaxed text-[#876870] dark:text-[#c49ba3]">
+              Không gian luyện thi trực tuyến thanh thoát, chia đôi ngữ liệu thông minh, tích lũy XP và bảng xếp hạng thời gian thực.
+            </p>
+
+            {/* THREE FROSTED ACTION PILLS */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => scrollToSection('exam-library')}
+                className="btn btn-pill !py-2.5 !px-4.5 !text-[13px]"
+              >
+                <BookOpen className="w-4 h-4 text-crimson" />
+                Kho đề thi ({exams.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLeaderboardExam(null);
+                  setLeaderboardInitialTab('xp');
+                  setLeaderboardOpen(true);
+                }}
+                className="btn btn-pill !py-2.5 !px-4.5 !text-[13px]"
+              >
+                <Trophy className="w-4 h-4 text-amber-500" />
+                Bảng xếp hạng
+              </button>
+              <button
+                type="button"
+                onClick={() => setRanksModalOpen(true)}
+                className="btn btn-pill !py-2.5 !px-4.5 !text-[13px]"
+              >
+                <Award className="w-4 h-4 text-crimson" />
+                Lộ trình Cấp bậc
+              </button>
+            </div>
+
+            <p className="mt-6 text-[11.5px] tracking-wide text-[#876870]/90 dark:text-[#b88c95]/85">
+              Tư duy Toán học &nbsp;·&nbsp; Tư duy Đọc hiểu &nbsp;·&nbsp; Tư duy Khoa học &nbsp;·&nbsp; TSA HUST
             </p>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {fromFallback && (
-              <span className="rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-xs text-slate-500 dark:text-zinc-400">
-                Đề mẫu mặc định
-              </span>
-            )}
-            <button
-              onClick={onRefresh}
-              disabled={loading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Làm mới
-            </button>
-          </div>
         </div>
+      </section>
 
-        {/* Minimalist Exam Type Filter Pill Tabs */}
-        <div className="mt-6 flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
-          <button
-            type="button"
-            onClick={() => setSelectedExamType('ALL')}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              selectedExamType === 'ALL'
-                ? 'border-slate-900 dark:border-zinc-100 bg-slate-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
-                : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700'
-            }`}
-          >
-            Tất cả
-          </button>
-          {EXAM_TYPES.map((t) => {
-            const active = selectedExamType === t.value;
-            return (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setSelectedExamType(t.value)}
-                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  active
-                    ? 'border-[#B91C1C] bg-[#B91C1C] text-white'
-                    : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:border-slate-300 dark:hover:border-zinc-700'
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Clean Exam Cards Grid */}
-        <section className="mt-6">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map((n) => (
-                <div
-                  key={n}
-                  className="h-44 rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 animate-pulse flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="h-4 w-24 bg-slate-100 dark:bg-zinc-800 rounded" />
-                    <div className="h-5 w-3/4 bg-slate-100 dark:bg-zinc-800 rounded" />
-                  </div>
-                  <div className="h-9 w-full bg-slate-100 dark:bg-zinc-800 rounded-lg" />
-                </div>
-              ))}
-            </div>
-          ) : filteredExams.length === 0 ? (
-            <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-12 text-center">
-              <p className="text-sm font-medium text-slate-700 dark:text-zinc-300">
-                Chưa có đề thi nào cho kỳ thi {selectedExamType}.
+      {/* ============================================================
+          EXAM LIBRARY — FROSTED GLASS CARDS, TABS & COMPACT SEARCH
+         ============================================================ */}
+      <main className="flex-1">
+        <section id="exam-library" className="relative mx-auto max-w-[1200px] px-4 sm:px-6 pb-20 sm:pb-28 scroll-mt-24">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <span
+                  className="h-px w-8"
+                  style={{ background: 'linear-gradient(90deg, #dc263e, #f799a6)' }}
+                />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-crimson">
+                  Kho đề trực tuyến
+                </span>
+              </div>
+              <h2 className="mt-3 text-[clamp(1.65rem,3.4vw,2.35rem)] font-normal leading-[1.15] tracking-[-0.03em] text-[#2a161b] dark:text-[#fff2f4]">
+                Chọn đề thi để bắt đầu
+              </h2>
+              <p className="mt-2 text-[14.5px] text-[#876870] dark:text-[#c49ba3]">
+                Hiển thị{' '}
+                <span className="font-mono font-semibold text-crimson">
+                  {filteredExams.length}
+                </span>{' '}
+                đề thi phù hợp trên hệ thống.
               </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {fromFallback && (
+                <span className="rounded-full border border-[var(--line)] bg-[#fff5f6] dark:bg-[#241219] px-3 py-1.5 text-xs text-[#5e4249] dark:text-[#fbbac3]">
+                  Đề mẫu mặc định
+                </span>
+              )}
               <button
-                type="button"
-                onClick={() => setSelectedExamType('ALL')}
-                className="mt-3 text-xs font-semibold text-[#B91C1C] dark:text-red-400 hover:underline"
+                onClick={onRefresh}
+                disabled={loading}
+                className="btn btn-pill btn-sm"
               >
-                Xem tất cả đề thi
+                <RefreshCw className={`w-3.5 h-3.5 text-crimson ${loading ? 'animate-spin' : ''}`} />
+                Làm mới
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredExams.map((exam) => {
-                const typeMeta = getExamTypeMeta(normalizeExamType(exam.exam_type));
-                return (
-                  <article
-                    key={exam.id}
-                    className="group rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between gap-5"
+          </div>
+
+          {/* Frosted Segmented Section Tabs */}
+          <div
+            className="mt-7 inline-flex max-w-full flex-wrap gap-1.5 rounded-3xl sm:rounded-full border border-[var(--line)] bg-[#fff5f6]/85 dark:bg-[#1d0f15]/85 p-1.5 backdrop-blur-md"
+            role="tablist"
+            aria-label="Lọc theo phân môn TSA"
+          >
+            {TSA_SECTION_FILTERS.map((item) => {
+              const active = selectedSection === item.value;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setSelectedSection(item.value)}
+                  className={`tab-btn ${active ? 'is-active' : ''}`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Compact Search & Quick Filters inside Exam Library */}
+          <div className="prompt-box mt-4 rounded-2xl sm:rounded-full px-3.5 py-2 flex flex-col md:flex-row md:items-center gap-2.5">
+            <div className="flex items-center gap-2 flex-1 min-w-0 px-1">
+              <Search className="w-4 h-4 text-[#876870] dark:text-[#b88c95] shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm đề thi TSA (Toán học, Đọc hiểu, Khoa học...)"
+                aria-label="Tìm kiếm đề thi"
+                className="w-full bg-transparent text-[13.5px] text-[#2a161b] dark:text-[#fff2f4] placeholder:text-[#876870]/75 dark:placeholder:text-[#b88c95]/70 outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="rounded-full p-1 text-[#876870] hover:text-crimson hover:bg-[#ffeff1] dark:hover:bg-white/10 transition-colors cursor-pointer"
+                  aria-label="Xóa tìm kiếm"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setOnlyProctored((v) => !v)}
+                className={`mode-pill !py-1.5 !px-3 !text-[12px] ${onlyProctored ? 'is-active' : ''}`}
+                aria-pressed={onlyProctored}
+              >
+                <Shield className="w-3 h-3" />
+                Giám sát nghiêm túc
+              </button>
+              <button
+                type="button"
+                onClick={() => setOnlyMultiSection((v) => !v)}
+                className={`mode-pill !py-1.5 !px-3 !text-[12px] ${onlyMultiSection ? 'is-active' : ''}`}
+                aria-pressed={onlyMultiSection}
+              >
+                <Layers className="w-3 h-3" />
+                Nhiều phần thi
+              </button>
+            </div>
+          </div>
+
+          {/* Exam Cards Grid */}
+          <div className="mt-7">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {[1, 2, 3, 4].map((n) => (
+                  <div
+                    key={n}
+                    className="glass-card h-52 rounded-[24px] p-6 animate-pulse flex flex-col justify-between"
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span
-                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-bold shrink-0 ${typeMeta.badgeClass}`}
-                          >
-                            {typeMeta.shortLabel}
-                          </span>
-                          <span className="inline-flex items-center rounded-md border border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/70 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:text-zinc-300 truncate">
-                            {exam.section || 'Tổng hợp'}
-                          </span>
+                    <div className="space-y-3">
+                      <div className="h-5 w-28 bg-[#f4d5da]/70 dark:bg-white/10 rounded-full" />
+                      <div className="h-6 w-3/4 bg-[#f4d5da]/70 dark:bg-white/10 rounded-lg" />
+                    </div>
+                    <div className="h-10 w-full bg-[#f4d5da]/60 dark:bg-white/10 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredExams.length === 0 ? (
+              <div className="glass-card rounded-[26px] p-12 text-center">
+                <p className="text-sm font-medium text-[#2a161b] dark:text-[#fff2f4]">
+                  Không tìm thấy đề thi phù hợp với bộ lọc hiện tại.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSection('ALL');
+                    setSearchQuery('');
+                    setOnlyProctored(false);
+                    setOnlyMultiSection(false);
+                  }}
+                  className="btn btn-pill btn-sm mt-4"
+                >
+                  Đặt lại bộ lọc
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {filteredExams.map((exam) => {
+                  const typeMeta = getExamTypeMeta(normalizeExamType(exam.exam_type));
+                  const sectionsCount = resolveExamSections(exam).length;
+                  return (
+                    <article
+                      key={exam.id}
+                      className="aura-border lift-card glass-card group rounded-[24px] p-6 flex flex-col justify-between gap-5"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-3.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold shrink-0 ${typeMeta.badgeClass}`}
+                            >
+                              {typeMeta.shortLabel}
+                            </span>
+                            <span className="inline-flex items-center rounded-full border border-[var(--line)] bg-white/85 dark:bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-[#5e4249] dark:text-[#ebc9cf] truncate">
+                              {exam.section || 'Tổng hợp'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-[#876870] dark:text-[#c49ba3] shrink-0 font-mono">
+                            <span className="inline-flex items-center gap-1">
+                              <FileText className="w-3.5 h-3.5 text-crimson" />
+                              {exam.questions.length} câu
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-crimson" />
+                              {exam.duration_minutes}p
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-zinc-400 shrink-0">
-                          <span className="inline-flex items-center gap-1">
-                            <FileText className="w-3.5 h-3.5" />
-                            {exam.questions.length} câu
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" />
-                            {exam.duration_minutes} phút
-                          </span>
+
+                        <h3 className="text-[17px] font-medium text-[#2a161b] dark:text-[#fff2f4] leading-snug line-clamp-2 group-hover:text-crimson transition-colors">
+                          {exam.title}
+                        </h3>
+
+                        {exam.description && (
+                          <p className="mt-1.5 text-[13px] text-[#876870] dark:text-[#c49ba3] line-clamp-2 leading-relaxed">
+                            {exam.description}
+                          </p>
+                        )}
+
+                        <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                          {exam.anti_cheat !== false && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dc263e]/20 bg-[#ffeff1]/85 dark:bg-[#dc263e]/15 px-2.5 py-0.5 text-[11px] font-medium text-[#b91c30] dark:text-[#fbbac3]">
+                              <Shield className="w-3 h-3 text-crimson" />
+                              Giám sát 5 lớp
+                            </span>
+                          )}
+                          {sectionsCount > 1 && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white/80 dark:bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-[#5e4249] dark:text-[#ebc9cf]">
+                              <Layers className="w-3 h-3 text-roseAccent" />
+                              {sectionsCount} phần thi nối tiếp
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <h2 className="text-base font-semibold text-slate-900 dark:text-zinc-100 leading-snug line-clamp-2">
-                        {exam.title}
-                      </h2>
-                      {exam.anti_cheat !== false && (
-                        <div className="mt-2 inline-flex items-center gap-1 rounded-md border border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:text-zinc-400">
-                          <Shield className="w-3 h-3 text-[#B91C1C] dark:text-red-400" />
-                          Giám sát nghiêm túc
-                        </div>
-                      )}
-                    </div>
+                      <div className="flex items-center gap-2.5 pt-4 border-t border-[var(--line)]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLeaderboardExam(exam);
+                            setLeaderboardInitialTab('exam');
+                            setLeaderboardOpen(true);
+                          }}
+                          className="btn btn-pill btn-sm"
+                        >
+                          <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                          Bảng xếp hạng
+                        </button>
 
-                    <div className="flex items-center gap-2.5 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
-                      <button
-                        onClick={() => {
-                          setLeaderboardExam(exam);
-                          setLeaderboardInitialTab('exam');
-                          setLeaderboardOpen(true);
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
-                      >
-                        <Trophy className="w-3.5 h-3.5 text-slate-400" />
-                        Bảng xếp hạng
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEnterExam(exam)}
+                          className="btn btn-crimson btn-sm flex-1"
+                        >
+                          Vào thi ngay
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
 
-                      <button
-                        onClick={() => handleEnterExam(exam)}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white transition-colors"
-                      >
-                        Vào thi
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
+        {/* ============================================================
+            SHOWCASE SPLIT — OPEN EDITORIAL ELEMENTS + FULL-BLEED CARD 2
+           ============================================================ */}
+        <section className="relative mx-auto max-w-[1200px] px-4 sm:px-6 pb-20 sm:pb-28">
+          <div className="grid gap-10 lg:gap-12 lg:grid-cols-2 items-center">
+            {/* Left Side: Unboxed Open Elements (giống ảnh 2) */}
+            <div className="flex flex-col items-start py-2 lg:pr-4">
+              <span className="text-[11.5px] font-semibold uppercase tracking-[0.18em] text-crimson">
+                Miễn phí cho mọi thí sinh
+              </span>
+
+              <h3 className="mt-3 text-[clamp(1.75rem,3.4vw,2.45rem)] font-semibold leading-[1.15] tracking-[-0.025em] text-[#2a161b]">
+                Luyện tập &amp;{' '}
+                <span className="text-crimson">Tích lũy XP</span>
+              </h3>
+
+              <p className="mt-4 max-w-[460px] text-[15px] leading-relaxed text-[#5e4249]">
+                Chinh phục bảng vàng với hệ thống 6 cấp bậc hội tụ từ Khởi điểm đến Huyền thoại Parabol.
+              </p>
+
+              <ul className="mt-6 space-y-3.5 text-[14px] text-[#3b2229]">
+                <li className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#dc263e]/20 bg-[#ffeff1] text-crimson">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                  Hiển thị công thức Toán &amp; Khoa học bằng LaTeX sắc nét
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#dc263e]/20 bg-[#ffeff1] text-crimson">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                  Đầy đủ 4 dạng câu hỏi: Trắc nghiệm, Đúng/Sai, Kéo thả, Điền số
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#dc263e]/20 bg-[#ffeff1] text-crimson">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                  Chấm điểm thang 100 kèm lời giải chi tiết sau khi nộp bài
+                </li>
+              </ul>
+
+              <div className="mt-8">
+                <button
+                  type="button"
+                  onClick={() => setRanksModalOpen(true)}
+                  className="btn btn-crimson"
+                >
+                  Xem lộ trình Cấp bậc
+                </button>
+              </div>
             </div>
-          )}
+
+            {/* Card 2: Full-Bleed Ảnh 2 + Chữ trắng nổi trực tiếp trên ảnh + Hiệu ứng đổi bóng */}
+            <div className="card-shadow-shift group relative flex flex-col justify-between overflow-hidden rounded-[26px] sm:rounded-[32px] border border-[var(--line)] bg-wine p-7 sm:p-10 min-h-[380px] sm:min-h-[410px] text-white">
+              <img
+                src={cardImage2}
+                alt="Tòa nhà C1 Đại học Bách khoa Hà Nội"
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_26%] transition-transform duration-700 group-hover:scale-[1.04]"
+              />
+
+              <div className="relative z-10 flex flex-1 flex-col justify-center">
+                <h3 className="text-[clamp(1.45rem,2.8vw,2rem)] font-medium leading-[1.15] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]">
+                  Mô phỏng áp lực thi thật
+                </h3>
+                <p className="mt-3 max-w-[420px] text-[14.5px] leading-relaxed text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)]">
+                  Môi trường làm bài tập trung tuyệt đối, chia đôi khung ngữ liệu kéo giãn linh hoạt và máy tính cầm tay tích hợp.
+                </p>
+
+                <ul className="mt-6 space-y-2.5 text-[13.5px] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.85)]">
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-[#ff8fa0] shrink-0 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]" />
+                    Đồng hồ đếm ngược độc lập cho từng phần thi nối tiếp
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-[#ff8fa0] shrink-0 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]" />
+                    Phòng chống gian lận 5 lớp &amp; khóa sao chép khi thi nghiêm túc
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-[#ff8fa0] shrink-0 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]" />
+                    Hỗ trợ phím tắt chuyển câu nhanh &amp; đánh dấu xem lại
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================
+            MANIFESTO SECTION WITH MISTTYPER + GRID MIST
+           ============================================================ */}
+        <section id="manifesto" className="relative overflow-hidden py-20 sm:py-28 scroll-mt-20">
+          <div className="grid-mist pointer-events-none absolute inset-0" />
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[580px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-45 blur-[110px]"
+            style={{
+              background: 'radial-gradient(circle, rgba(244, 140, 154, 0.45) 0%, rgba(255,255,255,0) 72%)',
+            }}
+          />
+
+          <div className="relative mx-auto max-w-[980px] px-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <span
+                className="h-px w-8"
+                style={{ background: 'linear-gradient(90deg, #dc263e, #f799a6)' }}
+              />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-crimson">
+                Tầm nhìn Parabol
+              </span>
+            </div>
+
+            <h2 className="mt-6 text-[clamp(1.5rem,3.6vw,2.65rem)] font-normal leading-[1.24] tracking-[-0.028em] text-[#2a161b] dark:text-[#fff2f4]">
+              <MistTyper
+                text="Parabol là không gian luyện thi thế hệ mới — giúp mọi sĩ tử rèn luyện tư duy sắc bén và tự tin bước vào phòng thi."
+                baseDelay={24}
+                jitter={14}
+                startDelay={160}
+                startOnVisible
+              />
+            </h2>
+
+            <p className="mt-6 text-[12px] text-[#876870]">
+              Phùng Huy · 2026
+            </p>
+          </div>
         </section>
       </main>
 
-      <footer className="border-t border-slate-200/80 dark:border-zinc-800 py-5 text-center text-xs text-slate-400 dark:text-zinc-500">
-        Parabol — Nền tảng luyện thi đánh giá năng lực & tư duy trực tuyến
+      {/* ============================================================
+          FOOTER WITH OVERSIZED TRANSLUCENT WATERMARK
+         ============================================================ */}
+      <footer className="relative overflow-hidden border-t border-[var(--line)] bg-gradient-to-b from-white to-[#fff5f6] dark:from-[#13090d] dark:to-[#0d0508] px-4 pt-14 sm:px-6">
+        <div className="mx-auto max-w-[1200px]">
+          <div className="grid gap-10 pb-10 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr]">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <Logo className="w-7 h-7 text-[#2a161b] dark:text-[#fbbac3]" />
+                <span className="text-[16px] font-semibold tracking-[-0.02em] text-crimson">
+                  parabol
+                </span>
+              </div>
+              <p className="mt-3.5 max-w-[320px] text-[13px] leading-relaxed text-[#876870] dark:text-[#b88c95]">
+                Nền tảng luyện thi Đánh giá tư duy TSA trực tuyến — Đại học Bách khoa Hà Nội.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#876870] dark:text-[#b88c95]">
+                Cấu trúc bài thi TSA
+              </h4>
+              <ul className="mt-3.5 space-y-2 text-[13px] text-[#5e4249] dark:text-[#ebc9cf]">
+                {TSA_SECTION_FILTERS.filter((f) => f.value !== 'ALL').map((item) => (
+                  <li key={item.value}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSection(item.value);
+                        scrollToSection('exam-library');
+                      }}
+                      className="transition hover:text-crimson cursor-pointer"
+                    >
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#876870] dark:text-[#b88c95]">
+                Tính năng
+              </h4>
+              <ul className="mt-3.5 space-y-2 text-[13px] text-[#5e4249] dark:text-[#ebc9cf]">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLeaderboardExam(null);
+                      setLeaderboardInitialTab('xp');
+                      setLeaderboardOpen(true);
+                    }}
+                    className="transition hover:text-crimson cursor-pointer"
+                  >
+                    Bảng xếp hạng XP
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setRanksModalOpen(true)}
+                    className="transition hover:text-crimson cursor-pointer"
+                  >
+                    Lộ trình 6 Cấp bậc
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={onOpenAdmin}
+                    className="transition hover:text-crimson cursor-pointer"
+                  >
+                    Quản trị kho đề
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="select-none pt-1" aria-hidden="true">
+            <div className="footer-display text-center text-[clamp(3.6rem,18vw,14rem)] font-normal">
+              Parabol
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-[var(--line)] py-6 sm:flex-row">
+            <p className="text-[11.5px] text-[#876870] dark:text-[#b88c95]">
+              © 2026 Parabol — Nền tảng luyện thi đánh giá năng lực &amp; tư duy trực tuyến.
+            </p>
+            <span className="font-mono text-[11px] text-[#876870] dark:text-[#b88c95]">
+              Crimson Mist Edition
+            </span>
+          </div>
+        </div>
       </footer>
 
       <LeaderboardModal
@@ -431,17 +925,6 @@ export const HomePage: React.FC<HomePageProps> = ({
         user={user}
         profile={profile}
         onClose={() => setRanksModalOpen(false)}
-        onOpenAuth={() => {
-          setPendingExam(null);
-          setAuthModalOpen(true);
-        }}
-      />
-
-      <MyScoreboardModal
-        isOpen={scoreboardOpen}
-        user={user}
-        exams={exams}
-        onClose={() => setScoreboardOpen(false)}
         onOpenAuth={() => {
           setPendingExam(null);
           setAuthModalOpen(true);
