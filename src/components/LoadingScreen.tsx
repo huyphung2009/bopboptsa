@@ -4,33 +4,32 @@ import styles from './LoadingScreen.module.css';
 interface LoadingScreenProps {
   delayMs?: number;
   fadeMs?: number;
+  onComplete?: () => void;
 }
 
 const LETTERS = ['T', 'S', 'A'];
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   delayMs = 1700,
-  fadeMs = 450,
+  fadeMs = 400,
+  onComplete,
 }) => {
   const [fading, setFading] = useState(false);
-  const [unmounted, setUnmounted] = useState(false);
 
   useEffect(() => {
     const fadeTimer = window.setTimeout(() => {
       setFading(true);
     }, delayMs);
 
-    const unmountTimer = window.setTimeout(() => {
-      setUnmounted(true);
+    const doneTimer = window.setTimeout(() => {
+      onComplete?.();
     }, delayMs + fadeMs);
 
     return () => {
       window.clearTimeout(fadeTimer);
-      window.clearTimeout(unmountTimer);
+      window.clearTimeout(doneTimer);
     };
-  }, [delayMs, fadeMs]);
-
-  if (unmounted) return null;
+  }, [delayMs, fadeMs, onComplete]);
 
   return (
     <div

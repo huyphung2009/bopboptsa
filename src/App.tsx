@@ -33,6 +33,7 @@ function getDisplayNameFromUser(user: User | null): string {
 }
 
 export function App() {
+  const [isPreloading, setIsPreloading] = useState(true);
   const [view, setView] = useState<ViewMode>('home');
   const [exams, setExams] = useState<Exam[]>([]);
   const [loadingExams, setLoadingExams] = useState(true);
@@ -251,6 +252,16 @@ export function App() {
     }
   };
 
+  if (isPreloading) {
+    return (
+      <LoadingScreen
+        delayMs={1700}
+        fadeMs={400}
+        onComplete={() => setIsPreloading(false)}
+      />
+    );
+  }
+
   if (view === 'admin') {
     return (
       <AdminPage
@@ -311,24 +322,21 @@ export function App() {
   }
 
   return (
-    <>
-      <LoadingScreen delayMs={1700} fadeMs={450} />
-      <HomePage
-        exams={exams}
-        loading={loadingExams}
-        fromFallback={fromFallback}
-        user={user}
-        profile={profile}
-        isAdmin={isAdmin}
-        isSuperAdmin={isSuperAdmin}
-        onStartExam={handleStartExam}
-        onRefresh={loadExams}
-        onOpenAdmin={() => setView('admin')}
-        onSignOut={handleSignOut}
-        onSaveTargetGoal={handleSaveTargetGoal}
-        leaderboardRefreshKey={leaderboardRefreshKey}
-      />
-    </>
+    <HomePage
+      exams={exams}
+      loading={loadingExams}
+      fromFallback={fromFallback}
+      user={user}
+      profile={profile}
+      isAdmin={isAdmin}
+      isSuperAdmin={isSuperAdmin}
+      onStartExam={handleStartExam}
+      onRefresh={loadExams}
+      onOpenAdmin={() => setView('admin')}
+      onSignOut={handleSignOut}
+      onSaveTargetGoal={handleSaveTargetGoal}
+      leaderboardRefreshKey={leaderboardRefreshKey}
+    />
   );
 }
 
