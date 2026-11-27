@@ -25,6 +25,7 @@ import { AuthModal } from './AuthModal';
 import { CloudBackdrop } from './CloudBackdrop';
 import { ExamModeModal } from './ExamModeModal';
 import { LeaderboardModal } from './LeaderboardModal';
+import { LegalModal, type LegalTab } from './LegalModal';
 import { Logo } from './Logo';
 import { MistTyper } from './MistTyper';
 import { ParticleCanvas } from './ParticleCanvas';
@@ -83,6 +84,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
   const [modeSelectExam, setModeSelectExam] = useState<Exam | null>(null);
+  const [legalTab, setLegalTab] = useState<LegalTab | null>(null);
 
   const [selectedSection, setSelectedSection] = useState<SectionFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -915,9 +917,32 @@ export const HomePage: React.FC<HomePageProps> = ({
             <p className="text-[11.5px] text-[#876870] dark:text-[#b88c95]">
               © 2026 Parabol — Nền tảng luyện thi đánh giá năng lực &amp; tư duy trực tuyến.
             </p>
-            <span className="font-mono text-[11px] text-[#876870] dark:text-[#b88c95]">
-              Crimson Mist Edition
-            </span>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11.5px] text-[#876870] dark:text-[#b88c95]">
+              <button
+                type="button"
+                onClick={() => setLegalTab('terms')}
+                className="transition hover:text-crimson hover:underline cursor-pointer"
+              >
+                Điều khoản sử dụng
+              </button>
+              <button
+                type="button"
+                onClick={() => setLegalTab('privacy')}
+                className="transition hover:text-crimson hover:underline cursor-pointer"
+              >
+                Chính sách bảo mật
+              </button>
+              <button
+                type="button"
+                onClick={() => setLegalTab('disclaimer')}
+                className="transition hover:text-crimson hover:underline cursor-pointer"
+              >
+                Miễn trừ trách nhiệm
+              </button>
+              <span className="font-mono text-[11px] opacity-80">
+                Crimson Mist Edition
+              </span>
+            </div>
           </div>
         </div>
       </footer>
@@ -976,6 +1001,12 @@ export const HomePage: React.FC<HomePageProps> = ({
           setModeSelectExam(null);
           onStartExam(ex, sectionId, mode);
         }}
+      />
+
+      <LegalModal
+        isOpen={legalTab !== null}
+        initialTab={legalTab ?? 'terms'}
+        onClose={() => setLegalTab(null)}
       />
     </div>
   );
