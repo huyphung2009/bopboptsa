@@ -29,6 +29,7 @@ import { formatDuration, gradeQuestion, isQuestionAnswered } from '../utils/scor
 import { CalculatorModal } from './CalculatorModal';
 import { CloudBackdrop } from './CloudBackdrop';
 import { MathText } from './MathText';
+import { PacingBarTimer } from './PacingBarTimer';
 import { QuestionRenderer } from './QuestionRenderer';
 import { ScratchpadModal } from './ScratchpadModal';
 
@@ -688,16 +689,13 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
               {formatDuration(elapsedSeconds)}
             </div>
           ) : (
-            <div
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs sm:text-sm font-mono font-semibold ${
-                isTimeLow
-                  ? 'border-rose-400 dark:border-rose-700 bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 animate-pulse'
-                  : 'border-[var(--line)] bg-white/90 dark:bg-[#241219] text-[#2a161b] dark:text-[#fff2f4]'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5 text-crimson" />
-              {formatDuration(remainingSeconds)}
-            </div>
+            <PacingBarTimer
+              answeredCount={answeredInSection}
+              totalQuestions={sectionQuestions.length}
+              remainingSeconds={remainingSeconds}
+              totalSeconds={sectionTotalSeconds}
+              isTimeLow={isTimeLow}
+            />
           )}
 
           <button
