@@ -4,6 +4,7 @@ export interface ResolvedSection {
   id: string;
   title: string;
   duration_minutes: number;
+  max_score?: number;
   questions: Question[];
 }
 
@@ -49,6 +50,7 @@ export function resolveExamSections(exam: Exam): ResolvedSection[] {
         id: sec.id,
         title: sec.title,
         duration_minutes: Math.max(1, Number(sec.duration_minutes) || 30),
+        max_score: sec.max_score,
         questions: buckets[sec.id] ?? [],
       }))
       .filter((s) => s.questions.length > 0);

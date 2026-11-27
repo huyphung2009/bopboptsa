@@ -71,8 +71,12 @@ export const RANK_TIERS: RankTier[] = [
   },
 ];
 
-export function calculateEarnedXp(score100: number, correctCount: number): number {
-  return Math.max(10, Math.round(score100 * 10 + correctCount * 5));
+export function calculateEarnedXp(
+  scoreRatio: number,
+  correctCount: number
+): number {
+  const safeRatio = Math.max(0, Math.min(1, scoreRatio));
+  return Math.max(10, Math.round(safeRatio * 1000) + correctCount * 5);
 }
 
 export function getRankByXp(xp: number): RankTier {

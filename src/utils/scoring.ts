@@ -1,3 +1,4 @@
+import { getExamFormat } from '../config/examFormats';
 import type {
   Exam,
   ExamAttemptResult,
@@ -8,6 +9,7 @@ import type {
   UserAnswerValue,
 } from '../types/exam';
 import { resolveExamSections } from './examSections';
+import { normalizeExamType } from './examTypes';
 
 function normalizeShortAnswer(val: string): string {
   return val
@@ -164,7 +166,10 @@ export function gradeExam(
     }
   }
 
-  const sectionResults: SectionResultSummary[] = activeSections.map((sec) => {
+  const examType = normalizeExamType(exam.exam_type);
+  const format = getExamFormat(examType);
+
+  const sectionResults: SectionResultSummary[] = activeSections.map((sec, idx) => {
     let secCorrect = 0;
     let secRaw = 0;
     let secMax = 0;
@@ -176,6 +181,31 @@ export function gradeExam(
         if (r.isFullCorrect) secCorrect += 1;
       }
     }
+
+    const matchedFmtSec =
+      format.sections.find(
+        (fs) =>
+          fs.title.toLowerCase().includes(sec.title.toLowerCase()) ||
+          sec.title.toLowerCase().includes(fs.title.toLowerCase())
+      ) ?? format.sections[idx];
+
+    const sectionMaxScore =
+      sec.max_score ??
+      matchedFmtSec?.max_score ??
+      (maxScore > 0
+        ? Math.round((secMax / maxScore) * format.totalMaxScore * 100) / 100
+        : format.totalMaxScore);
+
+    const scaledScore =
+      secMax > 0
+        ? Math.round((secRaw / secMax) * sectionMaxScore * 100) / 100
+        : 0;
+
+    const accuracyPct =
+      sec.questions.length > 0
+        ? Math.round((secCorrect / sec.questions.length) * 100)
+        : 0;
+
     return {
       sectionId: sec.id,
       title: sec.title,
@@ -183,19 +213,42 @@ export function gradeExam(
       totalQuestions: sec.questions.length,
       rawScore: Math.round(secRaw * 100) / 100,
       maxScore: Math.round(secMax * 100) / 100,
+      scaledScore,
+      sectionMaxScore,
+      accuracyPct,
     };
   });
+
+  const displayMaxScore =
+    sectionResults.length > 0
+      ? Math.round(
+          sectionResults.reduce((s, r) => s + r.sectionMaxScore, 0) * 100
+        ) / 100
+      : format.totalMaxScore;
+
+  const displayScore =
+    sectionResults.length > 0
+      ? Math.round(
+          sectionResults.reduce((s, r) => s + r.scaledScore, 0) * 100
+        ) / 100
+      : maxScore > 0
+        ? Math.round((rawScore / maxScore) * format.totalMaxScore * 100) / 100
+        : 0;
 
   const score100 =
     maxScore > 0 ? Math.round(((rawScore / maxScore) * 100) * 100) / 100 : 0;
 
   return {
     examId: exam.id,
-    examTitle: targetSectionId && activeSections[0]
-      ? `${exam.title} (${activeSections[0].title})`
-      : exam.title,
+    examTitle:
+      targetSectionId && activeSections[0]
+        ? `${exam.title} (${activeSections[0].title})`
+        : exam.title,
+    examType,
     studentName,
     score100,
+    displayScore,
+    displayMaxScore,
     rawScore: Math.round(rawScore * 100) / 100,
     maxScore: Math.round(maxScore * 100) / 100,
     correctCount,

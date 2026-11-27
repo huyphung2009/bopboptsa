@@ -1,3 +1,4 @@
+import { getExamFormat } from '../config/examFormats';
 import type { Exam, ExamSection, ExamType, Passage, Question } from '../types/exam';
 import { normalizeExamType } from '../utils/examTypes';
 
@@ -23,8 +24,19 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 function buildExtractionPrompt(targetExamType: ExamType): string {
-  return `Bạn là chuyên gia số hóa đề thi đánh giá năng lực & tư duy Việt Nam (${targetExamType}).
+  const fmt = getExamFormat(targetExamType);
+  const standardSectionsDesc = fmt.sections
+    .map(
+      (s) =>
+        `  - id: "${s.id}", title: "${s.title}", duration_minutes: ${s.duration_minutes}, max_score: ${s.max_score}`
+    )
+    .join('\n');
+
+  return `Bạn là chuyên gia số hóa đề thi đánh giá năng lực & tư duy Việt Nam (${fmt.fullName}).
 Hãy đọc toàn bộ file PDF đính kèm và trích xuất CHÍNH XÁC 100% nội dung đề thi thành một đối tượng JSON hợp lệ theo đúng schema dưới đây.
+
+KHUNG PHẦN THI CHUẨN CỦA KỲ THI ${targetExamType} (Thang tổng ${fmt.totalMaxScore} điểm):
+${standardSectionsDesc}
 
 YÊU CẦU BẮT BUỘC:
 1. Chỉ trả về JSON thuần hợp lệ (không markdown code fence, không giải thích thừa).
@@ -38,7 +50,7 @@ YÊU CẦU BẮT BUỘC:
    - "true_false": Câu Đúng/Sai nhiều ý. Cần có "statements": [{"id":"s1","text":"...","correct":true}, ...].
    - "drag_drop": Điền từ / Kéo thả chỗ trống. Trong "prompt" đặt placeholder dạng [[b1]], [[b2]]...; cần có "blanks": [{"id":"b1","correctWord":"..."}] và "wordBank": ["...", ...] (bao gồm cả từ đúng và từ nhiễu nếu có).
    - "short_answer": Trả lời ngắn / Điền số. Cần có "correctAnswers": ["..."].
-5. Nếu đề thi trong PDF là đề tổng hợp gồm nhiều phần (ví dụ TSA: Tư duy Toán học 60p - Tư duy Đọc hiểu 30p - Tư duy Khoa học 60p; hoặc HSA: Định lượng - Định tính - Khoa học), hãy tạo mảng "sections" với id "sec-1", "sec-2",... kèm "duration_minutes" tương ứng cho từng phần, và gắn "sectionId" cho mỗi câu hỏi khớp với id phần đó.
+5. Map các câu hỏi vào đúng tên các phần thi chuẩn trong mảng "sections" ở trên (kèm "duration_minutes" và "max_score"), và gắn "sectionId" + "section" cho mỗi câu hỏi khớp với phần thi tương ứng (nếu PDF chỉ chứa 1 phần lẻ thì chỉ giữ lại phần đó trong "sections").
 6. Nếu cuối file PDF có bảng đáp án hoặc hướng dẫn giải, hãy điền chính xác đáp án đúng vào từng câu và trích xuất lời giải chi tiết vào trường "explanation" (hỗ trợ KaTeX). Nếu không có đáp án trong PDF, đặt đáp án mặc định hợp lý và ghi chú ngắn trong "explanation".
 
 SCHEMA JSON MỤC TIÊU:
@@ -47,9 +59,9 @@ SCHEMA JSON MỤC TIÊU:
   "description": "Mô tả ngắn gọn nội dung đề thi",
   "exam_type": "${targetExamType}",
   "section": "Tổng hợp" | "Tư duy Toán học" | "Tư duy Đọc hiểu" | "Tư duy Khoa học",
-  "duration_minutes": 60,
+  "duration_minutes": ${fmt.totalDurationMinutes},
   "sections": [
-    { "id": "sec-1", "title": "Phần 1: Tư duy Toán học", "duration_minutes": 60 }
+    { "id": "${fmt.sections[0]?.id ?? 'sec-1'}", "title": "${fmt.sections[0]?.title ?? 'Phần 1'}", "duration_minutes": ${fmt.sections[0]?.duration_minutes ?? 60}, "max_score": ${fmt.sections[0]?.max_score ?? 100} }
   ],
   "passages": [
     {
@@ -87,6 +99,7 @@ function sanitizeExtractedExam(raw: any, targetExamType: ExamType): Partial<Exam
         id: String(s.id || `sec-${idx + 1}`),
         title: String(s.title || `Phần ${idx + 1}`),
         duration_minutes: Math.max(5, Number(s.duration_minutes ?? 30)),
+        max_score: s.max_score !== undefined ? Number(s.max_score) : undefined,
       }))
     : undefined;
 

@@ -10,6 +10,7 @@ export interface ExamSection {
   id: string;
   title: string;
   duration_minutes: number;
+  max_score?: number;
 }
 
 export interface Passage {
@@ -96,13 +97,20 @@ export interface SectionResultSummary {
   totalQuestions: number;
   rawScore: number;
   maxScore: number;
+  scaledScore: number;
+  sectionMaxScore: number;
+  accuracyPct: number;
 }
 
 export interface ExamAttemptResult {
   examId: string;
   examTitle: string;
+  examType: ExamType;
   studentName: string;
+  avatarUrl?: string | null;
   score100: number;
+  displayScore: number;
+  displayMaxScore: number;
   rawScore: number;
   maxScore: number;
   correctCount: number;
@@ -119,13 +127,16 @@ export interface ExamAttemptResult {
 export interface AttemptRecord {
   id?: string;
   exam_id: string;
+  exam_type?: ExamType;
   student_name: string;
   score: number;
+  max_score?: number;
   correct_count: number;
   total_questions: number;
   time_spent_seconds: number;
   violation_count?: number;
   is_flagged?: boolean;
+  section_scores?: SectionResultSummary[] | null;
   user_answers?: UserAnswers | null;
   user_id?: string | null;
   avatar_url?: string | null;

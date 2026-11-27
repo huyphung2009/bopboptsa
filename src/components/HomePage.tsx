@@ -2,6 +2,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
   ArrowRight,
   Award,
+  BarChart3,
   Clock,
   FileText,
   LogOut,
@@ -19,6 +20,7 @@ import { AuthModal } from './AuthModal';
 import { ExamModeModal } from './ExamModeModal';
 import { LeaderboardModal } from './LeaderboardModal';
 import { Logo } from './Logo';
+import { MyScoreboardModal } from './MyScoreboardModal';
 import { RankBadge, XpProgressBar } from './RankBadge';
 import { RanksModal } from './RanksModal';
 import { resolveExamSections } from '../utils/examSections';
@@ -64,6 +66,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [leaderboardInitialTab, setLeaderboardInitialTab] = useState<'xp' | 'exam'>('xp');
   const [leaderboardExam, setLeaderboardExam] = useState<Exam | null>(null);
   const [ranksModalOpen, setRanksModalOpen] = useState(false);
+  const [scoreboardOpen, setScoreboardOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
   const [modeSelectExam, setModeSelectExam] = useState<Exam | null>(null);
@@ -132,6 +135,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               >
                 <Award className="w-3.5 h-3.5 text-[#B91C1C] dark:text-red-400" />
                 <span className="hidden sm:inline">Cấp bậc & Danh hiệu</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setScoreboardOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800/80 transition-colors"
+              >
+                <BarChart3 className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                <span className="hidden sm:inline">Bảng điểm</span>
               </button>
             </nav>
           </div>
@@ -420,6 +431,17 @@ export const HomePage: React.FC<HomePageProps> = ({
         user={user}
         profile={profile}
         onClose={() => setRanksModalOpen(false)}
+        onOpenAuth={() => {
+          setPendingExam(null);
+          setAuthModalOpen(true);
+        }}
+      />
+
+      <MyScoreboardModal
+        isOpen={scoreboardOpen}
+        user={user}
+        exams={exams}
+        onClose={() => setScoreboardOpen(false)}
         onOpenAuth={() => {
           setPendingExam(null);
           setAuthModalOpen(true);

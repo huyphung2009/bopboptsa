@@ -28,6 +28,7 @@ import {
 import React, { useCallback, useEffect, useState } from 'react';
 import { deleteExam, fetchExams, upsertExam } from '../lib/examService';
 import { extractExamFromPdf } from '../lib/pdfExamImporter';
+import { getExamFormat } from '../config/examFormats';
 import {
   addAppAdmin,
   fetchAppAdmins,
@@ -1052,38 +1053,60 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
             {/* Sections Manager (Multi-section timing) */}
             <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                    2. Cấu trúc Phần thi & Thời gian riêng (tùy chọn cho đề tổng hợp)
+                    2. Cấu trúc Phần thi & Thang điểm riêng ({examType})
                   </h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    let idx = sections.length + 1;
-                    while (sections.some((s) => s.id === `sec-${idx}`)) {
-                      idx += 1;
-                    }
-                    setSections((prev) => [
-                      ...prev,
-                      {
-                        id: `sec-${idx}`,
-                        title: `Phần ${idx}`,
-                        duration_minutes: 30,
-                      },
-                    ]);
-                  }}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Thêm phần thi
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fmt = getExamFormat(examType);
+                      setSections(
+                        fmt.sections.map((s) => ({
+                          id: s.id,
+                          title: s.title,
+                          duration_minutes: s.duration_minutes,
+                          max_score: s.max_score,
+                        }))
+                      );
+                      setDurationMinutes(fmt.totalDurationMinutes);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-200 dark:border-red-900/70 bg-red-50/70 dark:bg-red-950/30 px-3 py-1.5 text-xs font-semibold text-[#B91C1C] dark:text-red-400 hover:bg-red-100/70 transition-colors"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Áp dụng khung phần thi chuẩn của kỳ thi này
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let idx = sections.length + 1;
+                      while (sections.some((s) => s.id === `sec-${idx}`)) {
+                        idx += 1;
+                      }
+                      setSections((prev) => [
+                        ...prev,
+                        {
+                          id: `sec-${idx}`,
+                          title: `Phần ${idx}`,
+                          duration_minutes: 30,
+                          max_score: 50,
+                        },
+                      ]);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Thêm phần thi
+                  </button>
+                </div>
               </div>
 
               {sections.length === 0 ? (
                 <p className="text-xs text-slate-400 dark:text-zinc-500">
-                  Chưa chia phần riêng. Nếu đề có nhiều phần với đồng hồ đếm ngược riêng (VD: Tư duy Toán học 60p, Đọc hiểu 30p, Khoa học 60p), hãy bấm "+ Thêm phần thi".
+                  Chưa chia phần riêng. Bấm <strong>"Áp dụng khung phần thi chuẩn của kỳ thi này"</strong> để điền nhanh cấu trúc {examType} hoặc bấm "+ Thêm phần thi".
                 </p>
               ) : (
                 <div className="space-y-2.5">
@@ -1104,7 +1127,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                           setSections(next);
                         }}
                         placeholder="Tên phần thi (VD: Phần 1: Tư duy Toán học)"
-                        className="flex-1 min-w-[200px] rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                        className="flex-1 min-w-[190px] rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
                       />
                       <div className="flex items-center gap-1.5">
                         <input
@@ -1120,9 +1143,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                             };
                             setSections(next);
                           }}
-                          className="w-20 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-xs sm:text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                          className="w-16 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-xs sm:text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
                         />
                         <span className="text-xs text-slate-500">phút</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min={1}
+                          max={1200}
+                          value={sec.max_score ?? ''}
+                          placeholder="Điểm"
+                          onChange={(e) => {
+                            const next = [...sections];
+                            next[idx] = {
+                              ...sec,
+                              max_score: e.target.value
+                                ? Math.max(1, Number(e.target.value))
+                                : undefined,
+                            };
+                            setSections(next);
+                          }}
+                          className="w-16 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1.5 text-xs sm:text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                        />
+                        <span className="text-xs text-slate-500">điểm</span>
                       </div>
                       <button
                         type="button"

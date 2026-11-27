@@ -104,7 +104,7 @@ export async function getLeaderboard(examId: string): Promise<{
     const { data, error } = await supabase
       .from('attempts')
       .select(
-        'id, exam_id, student_name, score, correct_count, total_questions, time_spent_seconds, violation_count, is_flagged, user_answers, user_id, avatar_url, created_at'
+        'id, exam_id, exam_type, student_name, score, max_score, correct_count, total_questions, time_spent_seconds, violation_count, is_flagged, section_scores, user_answers, user_id, avatar_url, created_at'
       )
       .eq('exam_id', examId)
       .order('score', { ascending: false })
@@ -134,13 +134,16 @@ export async function submitAttempt(attempt: AttemptRecord): Promise<{
 }> {
   const payload = {
     exam_id: attempt.exam_id,
+    exam_type: attempt.exam_type ?? 'TSA',
     student_name: attempt.student_name,
     score: Number(attempt.score),
+    max_score: Number(attempt.max_score ?? 100),
     correct_count: Number(attempt.correct_count ?? 0),
     total_questions: Number(attempt.total_questions ?? 0),
     time_spent_seconds: Number(attempt.time_spent_seconds ?? 0),
     violation_count: Number(attempt.violation_count ?? 0),
     is_flagged: Boolean(attempt.is_flagged),
+    section_scores: attempt.section_scores ?? null,
     user_answers: attempt.user_answers ?? {},
     user_id: attempt.user_id ?? null,
     avatar_url: attempt.avatar_url ?? null,
@@ -164,6 +167,35 @@ export async function submitAttempt(attempt: AttemptRecord): Promise<{
     return {
       ok: false,
       errorMessage: err instanceof Error ? err.message : 'Lỗi lưu kết quả',
+    };
+  }
+}
+
+export async function fetchUserAttempts(userId: string): Promise<{
+  attempts: AttemptRecord[];
+  errorMessage?: string;
+}> {
+  try {
+    const { data, error } = await supabase
+      .from('attempts')
+      .select(
+        'id, exam_id, exam_type, student_name, score, max_score, correct_count, total_questions, time_spent_seconds, violation_count, is_flagged, section_scores, user_id, avatar_url, created_at'
+      )
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('[fetchUserAttempts] Supabase error:', error);
+      return { attempts: [], errorMessage: error.message };
+    }
+
+    return { attempts: (data ?? []) as AttemptRecord[] };
+  } catch (err) {
+    console.error('[fetchUserAttempts] Unexpected error:', err);
+    return {
+      attempts: [],
+      errorMessage: err instanceof Error ? err.message : 'Không thể tải lịch sử thi',
     };
   }
 }

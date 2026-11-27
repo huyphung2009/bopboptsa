@@ -154,19 +154,23 @@ export function App() {
       timeSpentSeconds,
       targetSectionId
     );
+    const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
     const result: ExamAttemptResult = {
       ...graded,
+      avatarUrl,
       violationCount,
       isFlagged,
     };
 
-    const earnedXp = calculateEarnedXp(result.score100, result.correctCount);
+    const scoreRatio =
+      result.displayMaxScore > 0
+        ? result.displayScore / result.displayMaxScore
+        : 0;
+    const earnedXp = calculateEarnedXp(scoreRatio, result.correctCount);
     setAttemptResult(result);
     setSaveStatus('saving');
     setSaveError(undefined);
     setView('result');
-
-    const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
 
     if (isFlagged) {
       // Flagged attempt: do NOT award XP
@@ -202,13 +206,16 @@ export function App() {
 
     const res = await submitAttempt({
       exam_id: result.examId,
+      exam_type: result.examType,
       student_name: result.studentName,
-      score: result.score100,
+      score: result.displayScore,
+      max_score: result.displayMaxScore,
       correct_count: result.correctCount,
       total_questions: result.totalQuestions,
       time_spent_seconds: result.timeSpentSeconds,
       violation_count: violationCount,
       is_flagged: isFlagged,
+      section_scores: result.sectionResults ?? null,
       user_answers: answers,
       user_id: user?.id ?? null,
       avatar_url: avatarUrl,
