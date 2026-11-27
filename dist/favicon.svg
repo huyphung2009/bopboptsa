@@ -1,0 +1,14 @@
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="parabolFavGrad" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#dc263e"/>
+      <stop offset="55%" stop-color="#ef4d63"/>
+      <stop offset="100%" stop-color="#f799a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="9" fill="#fff5f6"/>
+  <path d="M5 24.5H27" stroke="#dc263e" stroke-opacity="0.24" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M16 4.5V27.5" stroke="#dc263e" stroke-opacity="0.24" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M6.5 24.5C9.5 11.5 12.6 7 16 7C19.4 7 22.5 11.5 25.5 24.5" stroke="url(#parabolFavGrad)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="16" cy="7" r="2.4" fill="#dc263e"/>
+</svg>
