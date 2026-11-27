@@ -34,11 +34,6 @@ export function App() {
   const [loadingExams, setLoadingExams] = useState(true);
   const [fromFallback, setFromFallback] = useState(false);
 
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('bopbop-theme') === 'dark';
-  });
-
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -53,11 +48,11 @@ export function App() {
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
 
-  // Apply Light / Dark mode class to <html>
+  // Enforce crisp light theme
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('bopbop-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
+    document.documentElement.classList.remove('dark');
+    localStorage.removeItem('bopbop-theme');
+  }, []);
 
   const syncUserProfileAndRole = useCallback(async (currentUser: User | null) => {
     if (!currentUser) {
@@ -116,8 +111,6 @@ export function App() {
     loadExams();
   }, [loadExams]);
 
-  const handleToggleDark = () => setIsDark((d) => !d);
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -154,23 +147,19 @@ export function App() {
       timeSpentSeconds,
       targetSectionId
     );
-    const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
     const result: ExamAttemptResult = {
       ...graded,
-      avatarUrl,
       violationCount,
       isFlagged,
     };
 
-    const scoreRatio =
-      result.displayMaxScore > 0
-        ? result.displayScore / result.displayMaxScore
-        : 0;
-    const earnedXp = calculateEarnedXp(scoreRatio, result.correctCount);
+    const earnedXp = calculateEarnedXp(result.score100, result.correctCount);
     setAttemptResult(result);
     setSaveStatus('saving');
     setSaveError(undefined);
     setView('result');
+
+    const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
 
     if (isFlagged) {
       // Flagged attempt: do NOT award XP
@@ -206,16 +195,13 @@ export function App() {
 
     const res = await submitAttempt({
       exam_id: result.examId,
-      exam_type: result.examType,
       student_name: result.studentName,
-      score: result.displayScore,
-      max_score: result.displayMaxScore,
+      score: result.score100,
       correct_count: result.correctCount,
       total_questions: result.totalQuestions,
       time_spent_seconds: result.timeSpentSeconds,
       violation_count: violationCount,
       is_flagged: isFlagged,
-      section_scores: result.sectionResults ?? null,
       user_answers: answers,
       user_id: user?.id ?? null,
       avatar_url: avatarUrl,
@@ -253,8 +239,6 @@ export function App() {
         exam={activeExam}
         studentName={resolvedName}
         targetSectionId={activeSectionId}
-        isDark={isDark}
-        onToggleDark={handleToggleDark}
         onSubmit={handleSubmitExam}
         onExit={() => setView('home')}
       />
@@ -286,8 +270,6 @@ export function App() {
       isAdmin={isAdmin}
       isSuperAdmin={isSuperAdmin}
       studentName={studentName}
-      isDark={isDark}
-      onToggleDark={handleToggleDark}
       onChangeStudentName={setStudentName}
       onStartExam={handleStartExam}
       onRefresh={loadExams}
