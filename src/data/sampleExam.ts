@@ -5,6 +5,7 @@ export const SAMPLE_EXAM: Exam = {
   title: 'Đề minh họa Đánh giá tư duy TSA HUST — Đề chuẩn mẫu #01',
   description:
     'Đề thi mẫu tích hợp đầy đủ 3 phần: Tư duy Toán học, Tư duy Đọc hiểu và Tư duy Khoa học với đủ 4 định dạng câu hỏi TSA chuẩn Đại học Bách khoa Hà Nội.',
+  exam_type: 'TSA',
   section: 'Tổng hợp (Toán - Đọc - Khoa học)',
   duration_minutes: 60,
   is_sample: true,

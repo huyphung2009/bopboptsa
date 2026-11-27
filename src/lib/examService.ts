@@ -1,5 +1,6 @@
 import { SAMPLE_EXAM } from '../data/sampleExam';
 import type { AttemptRecord, Exam, Passage, Question } from '../types/exam';
+import { normalizeExamType } from '../utils/examTypes';
 import { supabase } from './supabase';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,10 +26,11 @@ function normalizeExamRow(row: any): Exam {
 
   return {
     id: String(row.id ?? payload.id ?? crypto.randomUUID()),
-    title: String(row.title ?? payload.title ?? 'Đề thi TSA chưa đặt tên'),
+    title: String(row.title ?? payload.title ?? 'Đề thi chưa đặt tên'),
     description: String(
-      row.description ?? payload.description ?? 'Đề luyện thi Đánh giá tư duy TSA HUST'
+      row.description ?? payload.description ?? 'Đề luyện thi trực tuyến Parabol'
     ),
+    exam_type: normalizeExamType(row.exam_type ?? payload.exam_type),
     section: row.section ?? payload.section ?? 'Tổng hợp',
     duration_minutes: Number(row.duration_minutes ?? payload.duration_minutes ?? 60),
     passages,
@@ -169,6 +171,7 @@ export async function upsertExam(
       id: examId,
       title: exam.title,
       description: exam.description,
+      exam_type: normalizeExamType(exam.exam_type),
       section: exam.section ?? 'Tổng hợp',
       duration_minutes: exam.duration_minutes,
       passages: exam.passages,

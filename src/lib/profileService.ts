@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 export const SUPER_ADMIN_EMAIL =
   (import.meta.env.VITE_SUPER_ADMIN_EMAIL as string | undefined)
     ?.trim()
-    .toLowerCase() || 'email_của_cậu@gmail.com';
+    .toLowerCase() || 'kienphung15101981@gmail.com';
 
 export interface UserProfile {
   id: string;

@@ -1,3 +1,5 @@
+export type ExamType = 'TSA' | 'HSA' | 'VACT' | 'QDA' | 'VSAT' | 'BCA';
+
 export type QuestionType =
   | 'single_choice'
   | 'true_false'
@@ -53,6 +55,7 @@ export interface Exam {
   id: string;
   title: string;
   description: string;
+  exam_type?: ExamType;
   section?: string;
   duration_minutes: number;
   passages: Passage[];

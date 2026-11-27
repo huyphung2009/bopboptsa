@@ -13,7 +13,6 @@ import {
   Plus,
   RefreshCw,
   Save,
-  Shield,
   Trash2,
   Upload,
   UserPlus,
@@ -29,7 +28,9 @@ import {
   SUPER_ADMIN_EMAIL,
   type AppAdminRecord,
 } from '../lib/profileService';
-import type { Exam, Passage, Question } from '../types/exam';
+import type { Exam, ExamType, Passage, Question } from '../types/exam';
+import { EXAM_TYPES, getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
+import { Logo } from './Logo';
 import { MathText } from './MathText';
 import { QuestionEditorCard } from './QuestionEditorCard';
 
@@ -136,6 +137,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [examType, setExamType] = useState<ExamType>('TSA');
   const [section, setSection] = useState('Tổng hợp');
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [passages, setPassages] = useState<Passage[]>([]);
@@ -222,6 +224,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setEditingId(undefined);
     setTitle('');
     setDescription('');
+    setExamType('TSA');
     setSection('Tổng hợp');
     setDurationMinutes(60);
     setPassages([]);
@@ -234,6 +237,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setEditingId(exam.is_sample ? undefined : exam.id);
     setTitle(exam.title);
     setDescription(exam.description);
+    setExamType(normalizeExamType(exam.exam_type));
     setSection(exam.section || 'Tổng hợp');
     setDurationMinutes(exam.duration_minutes || 60);
     setPassages(exam.passages ?? []);
@@ -248,6 +252,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const clean = {
       title: exam.title,
       description: exam.description,
+      exam_type: normalizeExamType(exam.exam_type),
       section: exam.section ?? 'Tổng hợp',
       duration_minutes: exam.duration_minutes,
       passages: exam.passages,
@@ -318,7 +323,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const res = await upsertExam({
       id: editingId,
       title: title.trim(),
-      description: description.trim() || 'Đề luyện thi Đánh giá tư duy TSA HUST',
+      description: description.trim() || 'Đề luyện thi trực tuyến Parabol',
+      exam_type: examType,
       section,
       duration_minutes: Math.max(5, Number(durationMinutes) || 60),
       passages,
@@ -363,6 +369,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
     setTitle(parsed.title);
     setDescription(parsed.description ?? '');
+    setExamType(normalizeExamType(parsed.exam_type));
     setSection(parsed.section ?? 'Tổng hợp');
     setDurationMinutes(Number(parsed.duration_minutes ?? 60));
     setPassages(Array.isArray(parsed.passages) ? parsed.passages : []);
@@ -436,9 +443,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       <header className="sticky top-0 z-20 backdrop-blur-md bg-white/80 dark:bg-zinc-950/80 border-b border-slate-200/80 dark:border-zinc-800">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <Shield className="w-4 h-4 text-red-700 dark:text-red-500 shrink-0" />
+            <Logo className="w-5 h-5 shrink-0 text-slate-900 dark:text-zinc-100" />
             <h1 className="text-sm sm:text-base font-bold truncate">
-              Quản trị Bốp Bốp TSA
+              Quản trị Parabol
             </h1>
           </div>
 
@@ -580,67 +587,75 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             )}
 
             <div className="space-y-3">
-              {repoExams.map((exam) => (
-                <div
-                  key={exam.id}
-                  className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border border-slate-200/80 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:text-zinc-300">
-                        {exam.section || 'Tổng hợp'}
-                      </span>
-                      {exam.is_sample && (
-                        <span className="rounded-md bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
-                          Đề mẫu
+              {repoExams.map((exam) => {
+                const typeMeta = getExamTypeMeta(normalizeExamType(exam.exam_type));
+                return (
+                  <div
+                    key={exam.id}
+                    className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-md border px-2 py-0.5 text-[11px] font-bold ${typeMeta.badgeClass}`}
+                        >
+                          {typeMeta.shortLabel}
                         </span>
-                      )}
+                        <span className="rounded-md border border-slate-200/80 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:text-zinc-300">
+                          {exam.section || 'Tổng hợp'}
+                        </span>
+                        {exam.is_sample && (
+                          <span className="rounded-md bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                            Đề mẫu
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-zinc-100 truncate">
+                        {exam.title}
+                      </h3>
+                      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-zinc-400">
+                        <span className="inline-flex items-center gap-1">
+                          <FileText className="w-3.5 h-3.5" />
+                          {exam.questions.length} câu hỏi
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          {exam.duration_minutes} phút
+                        </span>
+                      </div>
                     </div>
-                    <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-zinc-100 truncate">
-                      {exam.title}
-                    </h3>
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-zinc-400">
-                      <span className="inline-flex items-center gap-1">
-                        <FileText className="w-3.5 h-3.5" />
-                        {exam.questions.length} câu hỏi
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />
-                        {exam.duration_minutes} phút
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleEditExam(exam)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      Sửa đề
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleExportJson(exam)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      Xuất JSON
-                    </button>
-                    {!exam.is_sample && (
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={() => setDeleteTarget(exam)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200/80 dark:border-red-900/70 bg-red-50/60 dark:bg-red-950/30 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60"
+                        onClick={() => handleEditExam(exam)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Xóa
+                        <Edit3 className="w-3.5 h-3.5" />
+                        Sửa đề
                       </button>
-                    )}
+                      <button
+                        type="button"
+                        onClick={() => handleExportJson(exam)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Xuất JSON
+                      </button>
+                      {!exam.is_sample && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(exam)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-red-200/80 dark:border-red-900/70 bg-red-50/60 dark:bg-red-950/30 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Xóa
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -707,8 +722,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 1. Thông tin chung
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-3">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Tên đề thi *
                   </label>
@@ -719,6 +734,23 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     placeholder="VD: Đề thi thử TSA HUST #02 — Tư duy Toán học & Khoa học"
                     className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm font-medium text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                    Kỳ thi
+                  </label>
+                  <select
+                    value={examType}
+                    onChange={(e) => setExamType(e.target.value as ExamType)}
+                    className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm font-semibold text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                  >
+                    {EXAM_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -752,7 +784,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   />
                 </div>
 
-                <div className="md:col-span-2">
+                <div className="md:col-span-3">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
                     Mô tả ngắn
                   </label>

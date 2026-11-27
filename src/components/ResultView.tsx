@@ -111,7 +111,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                 </div>
                 {xpAward.isGuest && (
                   <p className="text-xs text-slate-500 dark:text-zinc-400">
-                    Đăng nhập Google để tích lũy XP và thăng hạng Cấp bậc Bách Khoa qua từng bài thi.
+                    Đăng nhập Google để tích lũy XP và thăng hạng Cấp bậc Parabol qua từng bài thi.
                   </p>
                 )}
               </div>

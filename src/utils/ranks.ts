@@ -11,7 +11,7 @@ export interface RankTier {
 export const RANK_TIERS: RankTier[] = [
   {
     level: 1,
-    name: 'Tân binh Bách Khoa',
+    name: 'Khởi điểm',
     minXp: 0,
     maxXp: 499,
     badgeClass:
@@ -21,7 +21,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     level: 2,
-    name: 'Tập sự Tư duy',
+    name: 'Tiệm cận',
     minXp: 500,
     maxXp: 1499,
     badgeClass:
@@ -31,7 +31,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     level: 3,
-    name: 'Chiến thần Giải đề',
+    name: 'Hội tụ',
     minXp: 1500,
     maxXp: 2999,
     badgeClass:
@@ -41,7 +41,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     level: 4,
-    name: 'Cao thủ TSA',
+    name: 'Cực trị',
     minXp: 3000,
     maxXp: 5999,
     badgeClass:
@@ -51,7 +51,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     level: 5,
-    name: 'Kiện tướng Cổng Parabol',
+    name: 'Đỉnh Parabol',
     minXp: 6000,
     maxXp: 9999,
     badgeClass:
@@ -61,7 +61,7 @@ export const RANK_TIERS: RankTier[] = [
   },
   {
     level: 6,
-    name: 'Huyền thoại Bách Khoa',
+    name: 'Huyền thoại Parabol',
     minXp: 10000,
     maxXp: null,
     badgeClass:

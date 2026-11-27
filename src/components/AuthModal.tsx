@@ -1,6 +1,7 @@
 import { ArrowRight, Lock, LogIn, Mail, User, UserPlus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { Logo } from './Logo';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -101,19 +102,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 shadow-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80 dark:border-zinc-800">
-          <div className="min-w-0">
-            <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
-              {pendingExamTitle ? 'Vào phòng thi' : 'Đăng nhập Bốp Bốp TSA'}
-            </h3>
-            {pendingExamTitle ? (
-              <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
-                {pendingExamTitle}
-              </p>
-            ) : (
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                Đồng bộ điểm số & bảng xếp hạng
-              </p>
-            )}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Logo className="w-6 h-6 shrink-0 text-slate-900 dark:text-zinc-100" />
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
+                {pendingExamTitle ? 'Vào phòng thi' : 'Đăng nhập Parabol'}
+              </h3>
+              {pendingExamTitle ? (
+                <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
+                  {pendingExamTitle}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                  Đồng bộ điểm số, XP & bảng xếp hạng
+                </p>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
