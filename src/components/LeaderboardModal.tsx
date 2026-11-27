@@ -143,6 +143,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     if (!isOpen) return;
     setActiveTab(initialTab);
     if (initialExam) {
+      setFilterType('ALL');
       setSelectedExamId(initialExam.id);
     } else if (!selectedExamId && exams[0]) {
       setSelectedExamId(exams[0].id);
@@ -213,22 +214,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     }
   }, [isOpen, activeTab, selectedExamId, refreshKey, loadXpData, loadExamData]);
 
-  if (!isOpen) return null;
-
-  const isLoading = activeTab === 'xp' ? loadingXp : loadingExam;
-  const errorMessage = activeTab === 'xp' ? xpError : examError;
-
-  // Build Podium + List for current tab
-  const xpTop3: PodiumEntry[] = xpProfiles.slice(0, 3).map((p, i) => ({
-    rank: (i + 1) as 1 | 2 | 3,
-    name: p.full_name || 'Thí sinh Parabol',
-    avatarUrl: p.avatar_url,
-    xp: p.xp,
-    primaryMetric: `${p.xp.toLocaleString('vi-VN')} XP`,
-    secondaryMetric: `${p.exams_completed} đề đã thi`,
-    isCurrentUser: Boolean(currentUserId && p.id === currentUserId),
-  }));
-
   const validAttempts = useMemo(
     () =>
       attempts.filter(
@@ -247,14 +232,33 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     [validAttempts, attempts]
   );
 
+  if (!isOpen) return null;
+
+  const isLoading = activeTab === 'xp' ? loadingXp : loadingExam;
+  const errorMessage = activeTab === 'xp' ? xpError : examError;
+
+  // Build Podium + List for current tab
+  const xpTop3: PodiumEntry[] = xpProfiles.slice(0, 3).map((p, i) => {
+    const safeXp = p.xp ?? 0;
+    return {
+      rank: (i + 1) as 1 | 2 | 3,
+      name: p.full_name || 'Thí sinh ẩn danh',
+      avatarUrl: p.avatar_url,
+      xp: safeXp,
+      primaryMetric: `${safeXp.toLocaleString('vi-VN')} XP`,
+      secondaryMetric: `${p.exams_completed ?? 0} đề đã thi`,
+      isCurrentUser: Boolean(currentUserId && p.id === currentUserId),
+    };
+  });
+
   const examTop3: PodiumEntry[] = validAttempts.slice(0, 3).map((a, i) => ({
     rank: (i + 1) as 1 | 2 | 3,
-    name: a.student_name,
+    name: a.student_name || 'Thí sinh ẩn danh',
     avatarUrl: a.avatar_url,
-    xp: a.user_id && profilesMap[a.user_id] ? profilesMap[a.user_id].xp : 0,
-    primaryMetric: `${Number(a.score).toFixed(2)} đ`,
+    xp: a.user_id && profilesMap[a.user_id] ? profilesMap[a.user_id].xp ?? 0 : 0,
+    primaryMetric: `${Number(a.score ?? 0).toFixed(2)} đ`,
     secondaryMetric: `${a.correct_count ?? '-'}/${a.total_questions ?? '-'} · ${
-      a.time_spent_seconds !== undefined
+      a.time_spent_seconds !== undefined && a.time_spent_seconds !== null
         ? formatDuration(a.time_spent_seconds)
         : '--:--'
     }`,
@@ -448,20 +452,20 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                                 )}
                                 <div className="flex flex-wrap items-center gap-2 min-w-0">
                                   <span className="text-slate-800 dark:text-zinc-200 truncate max-w-[160px]">
-                                    {prof.full_name || 'Thí sinh Parabol'}
+                                    {prof.full_name || 'Thí sinh ẩn danh'}
                                   </span>
-                                  <RankBadge xp={prof.xp} compact />
+                                  <RankBadge xp={prof.xp ?? 0} compact />
                                 </div>
                               </div>
                             </td>
                             <td className="py-2.5 px-3 text-right text-xs font-mono text-slate-500 dark:text-zinc-400">
                               <span className="inline-flex items-center gap-1">
                                 <FileCheck2 className="w-3 h-3" />
-                                {prof.exams_completed}
+                                {prof.exams_completed ?? 0}
                               </span>
                             </td>
                             <td className="py-2.5 px-3 text-right font-bold font-mono text-slate-900 dark:text-zinc-100">
-                              {prof.xp.toLocaleString('vi-VN')}
+                              {(prof.xp ?? 0).toLocaleString('vi-VN')}
                             </td>
                           </tr>
                         );
@@ -521,7 +525,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                                 )}
                                 <div className="flex flex-wrap items-center gap-2 min-w-0">
                                   <span className="text-slate-800 dark:text-zinc-200 truncate max-w-[150px]">
-                                    {item.student_name}
+                                    {item.student_name || 'Thí sinh ẩn danh'}
                                   </span>
                                   {(item.is_flagged || (item.violation_count ?? 0) > 3) && (
                                     <span className="rounded bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-900 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-400">
@@ -539,7 +543,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                               </div>
                             </td>
                             <td className="py-2.5 px-3 text-right font-bold font-mono text-slate-900 dark:text-zinc-100">
-                              {Number(item.score).toFixed(2)}
+                              {Number(item.score ?? 0).toFixed(2)}
                             </td>
                             <td className="py-2.5 px-3 text-right text-xs font-mono text-slate-500">
                               {item.correct_count ?? '-'}/{item.total_questions ?? '-'}
@@ -547,7 +551,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                             <td className="py-2.5 px-3 text-right text-xs font-mono text-slate-500 whitespace-nowrap">
                               <span className="inline-flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {item.time_spent_seconds !== undefined
+                                {item.time_spent_seconds !== undefined &&
+                                item.time_spent_seconds !== null
                                   ? formatDuration(item.time_spent_seconds)
                                   : '--:--'}
                               </span>

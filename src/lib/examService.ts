@@ -103,9 +103,7 @@ export async function getLeaderboard(examId: string): Promise<{
   try {
     const { data, error } = await supabase
       .from('attempts')
-      .select(
-        'id, exam_id, exam_type, student_name, score, max_score, correct_count, total_questions, time_spent_seconds, violation_count, is_flagged, section_scores, user_answers, user_id, avatar_url, created_at'
-      )
+      .select('*')
       .eq('exam_id', examId)
       .order('score', { ascending: false })
       .order('time_spent_seconds', { ascending: true })
@@ -178,9 +176,7 @@ export async function fetchUserAttempts(userId: string): Promise<{
   try {
     const { data, error } = await supabase
       .from('attempts')
-      .select(
-        'id, exam_id, exam_type, student_name, score, max_score, correct_count, total_questions, time_spent_seconds, violation_count, is_flagged, section_scores, user_id, avatar_url, created_at'
-      )
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(100);
