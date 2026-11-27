@@ -6,13 +6,19 @@ import {
   Clock,
   Download,
   Edit3,
+  ExternalLink,
+  Eye,
+  EyeOff,
   FileCode2,
   FileText,
+  FileUp,
   FolderOpen,
+  KeyRound,
   Lock,
   Plus,
   RefreshCw,
   Save,
+  Sparkles,
   Trash2,
   Upload,
   UserPlus,
@@ -21,6 +27,7 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { deleteExam, fetchExams, upsertExam } from '../lib/examService';
+import { extractExamFromPdf } from '../lib/pdfExamImporter';
 import {
   addAppAdmin,
   fetchAppAdmins,
@@ -43,6 +50,7 @@ interface AdminPageProps {
 }
 
 const ADMIN_SESSION_KEY = 'bopbop-admin-unlocked';
+const GEMINI_KEY_STORAGE = 'parabol-gemini-api-key';
 const ADMIN_EMAILS = (
   (import.meta.env.VITE_ADMIN_EMAILS as string | undefined) || ''
 )
@@ -153,6 +161,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [jsonModalOpen, setJsonModalOpen] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
+
+  // AI PDF Importer state
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(GEMINI_KEY_STORAGE) ?? '';
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [isDraggingPdf, setIsDraggingPdf] = useState(false);
+  const [extractingPdf, setExtractingPdf] = useState(false);
 
   const loadRepo = useCallback(async () => {
     setLoadingRepo(true);
@@ -345,6 +363,54 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         type: 'error',
         text: `Không thể lưu lên Supabase: ${res.errorMessage}`,
       });
+    }
+  };
+
+  const handleExtractPdf = async () => {
+    setStatusBanner(null);
+    if (!pdfFile) {
+      setStatusBanner({ type: 'error', text: 'Vui lòng chọn file PDF đề thi trước.' });
+      return;
+    }
+    if (!geminiApiKey.trim()) {
+      setStatusBanner({
+        type: 'error',
+        text: 'Vui lòng nhập Gemini API Key để AI bóc tách file PDF.',
+      });
+      return;
+    }
+
+    setExtractingPdf(true);
+    try {
+      const extracted = await extractExamFromPdf({
+        file: pdfFile,
+        apiKey: geminiApiKey,
+        targetExamType: examType,
+      });
+
+      setTitle(extracted.title ?? '');
+      setDescription(extracted.description ?? '');
+      setExamType(normalizeExamType(extracted.exam_type ?? examType));
+      setSection(extracted.section ?? 'Tổng hợp');
+      setDurationMinutes(Number(extracted.duration_minutes ?? 60));
+      setPassages(extracted.passages ?? []);
+      setQuestions(
+        extracted.questions && extracted.questions.length > 0
+          ? extracted.questions
+          : [createEmptyQuestion(1)]
+      );
+
+      setStatusBanner({
+        type: 'success',
+        text: `AI đã bóc tách thành công ${extracted.questions?.length ?? 0} câu hỏi và ${extracted.passages?.length ?? 0} ngữ liệu từ PDF! Hãy kiểm tra lại bên dưới và bấm "Lưu đề lên hệ thống".`,
+      });
+    } catch (err) {
+      setStatusBanner({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Lỗi bóc tách đề từ PDF.',
+      });
+    } finally {
+      setExtractingPdf(false);
     }
   };
 
@@ -715,6 +781,152 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <span>{statusBanner.text}</span>
               </div>
             )}
+
+            {/* AI PDF-to-Exam Importer Card */}
+            <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[#B91C1C] dark:text-red-500" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
+                    Nhập nhanh từ file PDF đề thi (Gemini AI)
+                  </h3>
+                </div>
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-zinc-400 hover:text-[#B91C1C] dark:hover:text-red-400 transition-colors"
+                >
+                  Lấy Gemini API Key miễn phí
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* Gemini API Key Input */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                    Gemini API Key (lưu tại trình duyệt)
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={geminiApiKey}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setGeminiApiKey(val);
+                        localStorage.setItem(GEMINI_KEY_STORAGE, val);
+                      }}
+                      placeholder="AIzaSy..."
+                      className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 pl-9 pr-9 py-2 text-xs sm:text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((v) => !v)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200"
+                      aria-label={showApiKey ? 'Ẩn API Key' : 'Hiện API Key'}
+                    >
+                      {showApiKey ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Target Exam Type */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                    Kỳ thi mục tiêu
+                  </label>
+                  <select
+                    value={examType}
+                    onChange={(e) => setExamType(e.target.value as ExamType)}
+                    className="w-full rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                  >
+                    {EXAM_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* PDF Drag & Drop Zone */}
+              <label
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDraggingPdf(true);
+                }}
+                onDragLeave={() => setIsDraggingPdf(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDraggingPdf(false);
+                  const dropped = e.dataTransfer.files?.[0];
+                  if (dropped) setPdfFile(dropped);
+                }}
+                className={`flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl border border-dashed p-4 cursor-pointer transition-colors ${
+                  isDraggingPdf
+                    ? 'border-[#B91C1C] bg-red-50/40 dark:bg-red-950/20'
+                    : 'border-slate-300 dark:border-zinc-700 bg-[#FAFAFA] dark:bg-zinc-950 hover:border-slate-400 dark:hover:border-zinc-600'
+                }`}
+              >
+                <input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] ?? null;
+                    setPdfFile(selected);
+                  }}
+                />
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 flex items-center justify-center shrink-0">
+                    <FileUp className="w-4 h-4 text-[#B91C1C] dark:text-red-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-zinc-200 truncate">
+                      {pdfFile
+                        ? `${pdfFile.name} (${(pdfFile.size / (1024 * 1024)).toFixed(2)} MB)`
+                        : 'Kéo thả hoặc bấm để chọn file đề thi (.pdf, tối đa 20MB)'}
+                    </p>
+                    <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+                      Hỗ trợ đề Toán, Lý, Hóa, Sinh, Đọc hiểu với công thức KaTeX và bảng đáp án
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void handleExtractPdf();
+                  }}
+                  disabled={extractingPdf || !pdfFile}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition-colors shrink-0"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {extractingPdf ? 'Đang bóc tách...' : 'Bóc tách đề từ PDF'}
+                </button>
+              </label>
+
+              {extractingPdf && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-zinc-400">
+                    <span>AI đang đọc công thức & bóc tách câu hỏi từ PDF...</span>
+                    <span className="font-mono text-[#B91C1C] dark:text-red-400">
+                      gemini-2.5-flash
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                    <div className="h-full w-2/3 rounded-full bg-[#B91C1C] animate-pulse" />
+                  </div>
+                </div>
+              )}
+            </section>
 
             {/* General Info Card */}
             <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
