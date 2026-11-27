@@ -6,7 +6,9 @@ import { AuthModal } from './components/AuthModal';
 import { ExamRoom } from './components/ExamRoom';
 import { HomePage } from './components/HomePage';
 import { LoadingScreen } from './components/LoadingScreen';
+import { MascotCompanion } from './components/MascotCompanion';
 import { ResultView, type XpAwardSummary } from './components/ResultView';
+import { WrongNotebookModal } from './components/WrongNotebookModal';
 import { evaluateAndUnlockAchievements } from './lib/achievementService';
 import { fetchExams, getLeaderboard, submitAttempt } from './lib/examService';
 import {
@@ -59,6 +61,7 @@ export function App() {
   const [globalAuthOpen, setGlobalAuthOpen] = useState(false);
   const [globalAuthNotice, setGlobalAuthNotice] = useState<string | null>(null);
   const [unlockedToasts, setUnlockedToasts] = useState<AchievementDefinition[]>([]);
+  const [wrongBookOpen, setWrongBookOpen] = useState(false);
 
   // Enforce crisp light theme
   useEffect(() => {
@@ -309,14 +312,21 @@ export function App() {
     const resolvedName =
       studentName.trim() || getDisplayNameFromUser(user) || 'Thí sinh';
     return (
-      <ExamRoom
-        exam={activeExam}
-        studentName={resolvedName}
-        targetSectionId={activeSectionId}
-        mode={examMode}
-        onSubmit={handleSubmitExam}
-        onExit={() => setView('home')}
-      />
+      <>
+        <ExamRoom
+          exam={activeExam}
+          studentName={resolvedName}
+          targetSectionId={activeSectionId}
+          mode={examMode}
+          onSubmit={handleSubmitExam}
+          onExit={() => setView('home')}
+        />
+        <MascotCompanion
+          view="exam"
+          isWrongBookOpen={wrongBookOpen}
+          onOpenWrongBook={() => setWrongBookOpen(true)}
+        />
+      </>
     );
   }
 
@@ -352,6 +362,23 @@ export function App() {
             setUnlockedToasts((prev) => prev.filter((item) => item.id !== id))
           }
         />
+        <WrongNotebookModal
+          isOpen={wrongBookOpen}
+          userId={user?.id}
+          exams={exams}
+          refreshKey={leaderboardRefreshKey}
+          onClose={() => setWrongBookOpen(false)}
+          onRequireAuth={() => {
+            setGlobalAuthNotice('Vui lòng đăng nhập tài khoản để xem Sổ tay câu sai');
+            setGlobalAuthOpen(true);
+          }}
+        />
+        <MascotCompanion
+          view="result"
+          latestScore={attemptResult.score100}
+          isWrongBookOpen={wrongBookOpen}
+          onOpenWrongBook={() => setWrongBookOpen(true)}
+        />
       </>
     );
   }
@@ -373,11 +400,35 @@ export function App() {
         onSaveTargetGoal={handleSaveTargetGoal}
         leaderboardRefreshKey={leaderboardRefreshKey}
       />
+      <AuthModal
+        isOpen={globalAuthOpen}
+        onClose={() => {
+          setGlobalAuthOpen(false);
+          setGlobalAuthNotice(null);
+        }}
+        notice={globalAuthNotice}
+      />
       <AchievementToast
         achievements={unlockedToasts}
         onDismiss={(id) =>
           setUnlockedToasts((prev) => prev.filter((item) => item.id !== id))
         }
+      />
+      <WrongNotebookModal
+        isOpen={wrongBookOpen}
+        userId={user?.id}
+        exams={exams}
+        refreshKey={leaderboardRefreshKey}
+        onClose={() => setWrongBookOpen(false)}
+        onRequireAuth={() => {
+          setGlobalAuthNotice('Vui lòng đăng nhập tài khoản để xem Sổ tay câu sai');
+          setGlobalAuthOpen(true);
+        }}
+      />
+      <MascotCompanion
+        view="home"
+        isWrongBookOpen={wrongBookOpen}
+        onOpenWrongBook={() => setWrongBookOpen(true)}
       />
     </>
   );
