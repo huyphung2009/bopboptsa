@@ -11,6 +11,28 @@ export interface UserProfile {
   exams_completed: number;
   full_name?: string | null;
   avatar_url?: string | null;
+  target_university?: string | null;
+  target_major?: string | null;
+  target_exam_type?: string | null;
+  target_score?: number | null;
+  target_exam_date?: string | null;
+}
+
+export interface TargetGoalPayload {
+  target_university: string;
+  target_major: string;
+  target_exam_type: string;
+  target_score: number;
+  target_exam_date: string;
+}
+
+function readLocalGoal(userId: string): Partial<TargetGoalPayload> | null {
+  try {
+    const raw = localStorage.getItem(`parabol_target_goal_${userId}`);
+    return raw ? (JSON.parse(raw) as Partial<TargetGoalPayload>) : null;
+  } catch {
+    return null;
+  }
 }
 
 export interface AppAdminRecord {
@@ -36,22 +58,32 @@ export async function fetchOrCreateProfile(params: {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, xp, exams_completed, full_name, avatar_url')
+      .select('*')
       .eq('id', params.userId)
       .maybeSingle();
 
     if (error) {
       console.error('[fetchOrCreateProfile] Supabase error:', error);
-      return fallback;
+      const local = readLocalGoal(params.userId);
+      return local ? { ...fallback, ...local } : fallback;
     }
 
     if (data) {
+      const local = readLocalGoal(params.userId);
       return {
         id: data.id,
         xp: Number(data.xp ?? 0),
         exams_completed: Number(data.exams_completed ?? 0),
         full_name: data.full_name ?? params.fullName ?? null,
         avatar_url: data.avatar_url ?? params.avatarUrl ?? null,
+        target_university: data.target_university ?? local?.target_university ?? null,
+        target_major: data.target_major ?? local?.target_major ?? null,
+        target_exam_type: data.target_exam_type ?? local?.target_exam_type ?? null,
+        target_score:
+          data.target_score !== undefined && data.target_score !== null
+            ? Number(data.target_score)
+            : local?.target_score ?? null,
+        target_exam_date: data.target_exam_date ?? local?.target_exam_date ?? null,
       };
     }
 
@@ -322,6 +354,45 @@ export async function removeAppAdmin(email: string): Promise<{
     return {
       ok: false,
       errorMessage: err instanceof Error ? err.message : 'Lỗi gỡ quyền QTV',
+    };
+  }
+}
+
+export async function updateUserTargetGoal(
+  userId: string,
+  goal: TargetGoalPayload
+): Promise<{ ok: boolean; errorMessage?: string }> {
+  try {
+    localStorage.setItem(`parabol_target_goal_${userId}`, JSON.stringify(goal));
+  } catch {
+    // ignore storage errors
+  }
+
+  try {
+    const { error } = await supabase.from('profiles').upsert(
+      [
+        {
+          id: userId,
+          target_university: goal.target_university.trim(),
+          target_major: goal.target_major.trim(),
+          target_exam_type: goal.target_exam_type.trim(),
+          target_score: Number(goal.target_score),
+          target_exam_date: goal.target_exam_date || null,
+        },
+      ],
+      { onConflict: 'id' }
+    );
+
+    if (error) {
+      console.error('[updateUserTargetGoal] Supabase error:', error);
+      return { ok: false, errorMessage: error.message };
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error('[updateUserTargetGoal] Unexpected error:', err);
+    return {
+      ok: false,
+      errorMessage: err instanceof Error ? err.message : 'Lỗi lưu mục tiêu',
     };
   }
 }

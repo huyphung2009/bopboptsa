@@ -11,6 +11,8 @@ import {
   awardExamXp,
   checkAdminRole,
   fetchOrCreateProfile,
+  updateUserTargetGoal,
+  type TargetGoalPayload,
   type UserProfile,
 } from './lib/profileService';
 import { supabase } from './lib/supabase';
@@ -123,6 +125,23 @@ export function App() {
     setIsAdmin(false);
     setIsSuperAdmin(false);
     setStudentName('');
+  };
+
+  const handleSaveTargetGoal = async (goal: TargetGoalPayload) => {
+    if (!user) return;
+    await updateUserTargetGoal(user.id, goal);
+    setProfile((prev) =>
+      prev
+        ? { ...prev, ...goal }
+        : {
+            id: user.id,
+            xp: 0,
+            exams_completed: 0,
+            full_name: getDisplayNameFromUser(user) || null,
+            avatar_url: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+            ...goal,
+          }
+    );
   };
 
   const handleStartExam = (
@@ -306,6 +325,7 @@ export function App() {
         onRefresh={loadExams}
         onOpenAdmin={() => setView('admin')}
         onSignOut={handleSignOut}
+        onSaveTargetGoal={handleSaveTargetGoal}
         leaderboardRefreshKey={leaderboardRefreshKey}
       />
     </>

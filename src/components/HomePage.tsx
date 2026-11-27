@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import cardImage2 from '../../image/ảnh 2.png';
-import type { UserProfile } from '../lib/profileService';
+import type { TargetGoalPayload, UserProfile } from '../lib/profileService';
 import type { Exam } from '../types/exam';
 import { resolveExamSections } from '../utils/examSections';
 import { getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
@@ -30,6 +30,8 @@ import { MistTyper } from './MistTyper';
 import { ParticleCanvas } from './ParticleCanvas';
 import { RankBadge, XpProgressBar } from './RankBadge';
 import { RanksModal } from './RanksModal';
+import { TargetGoalModal } from './TargetGoalModal';
+import { TargetGoalWidget } from './TargetGoalWidget';
 
 interface HomePageProps {
   exams: Exam[];
@@ -43,6 +45,7 @@ interface HomePageProps {
   onRefresh: () => void;
   onOpenAdmin: () => void;
   onSignOut: () => void;
+  onSaveTargetGoal: (goal: TargetGoalPayload) => Promise<void>;
   leaderboardRefreshKey: number;
 }
 
@@ -68,12 +71,14 @@ export const HomePage: React.FC<HomePageProps> = ({
   onRefresh,
   onOpenAdmin,
   onSignOut,
+  onSaveTargetGoal,
   leaderboardRefreshKey,
 }) => {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [leaderboardInitialTab, setLeaderboardInitialTab] = useState<'xp' | 'exam'>('xp');
   const [leaderboardExam, setLeaderboardExam] = useState<Exam | null>(null);
   const [ranksModalOpen, setRanksModalOpen] = useState(false);
+  const [targetGoalOpen, setTargetGoalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
@@ -484,6 +489,19 @@ export const HomePage: React.FC<HomePageProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Target Goal & Countdown Widget (for logged-in users) */}
+          {user && (
+            <div className="mb-8">
+              <TargetGoalWidget
+                userId={user.id}
+                profile={profile}
+                exams={exams}
+                refreshKey={leaderboardRefreshKey}
+                onOpenModal={() => setTargetGoalOpen(true)}
+              />
+            </div>
+          )}
 
           {/* Frosted Segmented Section Tabs */}
           <div
@@ -923,6 +941,17 @@ export const HomePage: React.FC<HomePageProps> = ({
           setPendingExam(null);
           setAuthModalOpen(true);
         }}
+        onOpenGoalModal={() => {
+          setRanksModalOpen(false);
+          setTargetGoalOpen(true);
+        }}
+      />
+
+      <TargetGoalModal
+        isOpen={targetGoalOpen}
+        profile={profile}
+        onClose={() => setTargetGoalOpen(false)}
+        onSave={onSaveTargetGoal}
       />
 
       <AuthModal

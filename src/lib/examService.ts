@@ -168,6 +168,33 @@ export async function submitAttempt(attempt: AttemptRecord): Promise<{
   }
 }
 
+export async function fetchUserAttempts(userId: string): Promise<{
+  attempts: AttemptRecord[];
+  errorMessage?: string;
+}> {
+  try {
+    const { data, error } = await supabase
+      .from('attempts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('[fetchUserAttempts] Supabase error:', error);
+      return { attempts: [], errorMessage: error.message };
+    }
+
+    return { attempts: (data ?? []) as AttemptRecord[] };
+  } catch (err) {
+    console.error('[fetchUserAttempts] Unexpected error:', err);
+    return {
+      attempts: [],
+      errorMessage: err instanceof Error ? err.message : 'Không thể tải lịch sử thi',
+    };
+  }
+}
+
 export async function upsertExam(
   exam: Omit<Exam, 'id' | 'created_at'> & { id?: string }
 ): Promise<{

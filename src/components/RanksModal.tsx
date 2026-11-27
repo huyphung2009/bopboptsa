@@ -6,6 +6,7 @@ import {
   FileCheck2,
   Lock,
   Sparkles,
+  Target,
   X,
 } from 'lucide-react';
 import React from 'react';
@@ -19,6 +20,7 @@ interface RanksModalProps {
   profile: UserProfile | null;
   onClose: () => void;
   onOpenAuth?: () => void;
+  onOpenGoalModal?: () => void;
 }
 
 function getTierIcon(level: number) {
@@ -44,6 +46,7 @@ export const RanksModal: React.FC<RanksModalProps> = ({
   profile,
   onClose,
   onOpenAuth,
+  onOpenGoalModal,
 }) => {
   if (!isOpen) return null;
 
@@ -130,6 +133,24 @@ export const RanksModal: React.FC<RanksModalProps> = ({
               </div>
 
               <XpProgressBar xp={currentXp} />
+
+              {onOpenGoalModal && (
+                <div className="pt-2 border-t border-[var(--line)] flex items-center justify-between gap-2">
+                  <div className="text-xs text-[#5e4249] dark:text-[#ebc9cf] truncate">
+                    {profile?.target_university
+                      ? `Mục tiêu: ${profile.target_university} (${profile.target_score} đ)`
+                      : 'Chưa thiết lập mục tiêu đại học'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onOpenGoalModal}
+                    className="btn btn-pill btn-sm shrink-0"
+                  >
+                    <Target className="w-3.5 h-3.5 text-crimson" />
+                    Cài đặt mục tiêu
+                  </button>
+                </div>
+              )}
             </section>
           ) : (
             <section className="rounded-2xl border border-[var(--line)] bg-[#fff6f7]/80 dark:bg-[#241219]/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
