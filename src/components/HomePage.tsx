@@ -15,9 +15,11 @@ import type { UserProfile } from '../lib/profileService';
 import type { Exam, ExamType } from '../types/exam';
 import { EXAM_TYPES, getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
 import { AuthModal } from './AuthModal';
+import { ExamModeModal } from './ExamModeModal';
 import { LeaderboardModal } from './LeaderboardModal';
 import { Logo } from './Logo';
 import { RankBadge, XpProgressBar } from './RankBadge';
+import { resolveExamSections } from '../utils/examSections';
 
 interface HomePageProps {
   exams: Exam[];
@@ -31,7 +33,7 @@ interface HomePageProps {
   isDark: boolean;
   onToggleDark: () => void;
   onChangeStudentName: (name: string) => void;
-  onStartExam: (exam: Exam) => void;
+  onStartExam: (exam: Exam, targetSectionId?: string) => void;
   onRefresh: () => void;
   onOpenAdmin: () => void;
   onSignOut: () => void;
@@ -59,6 +61,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [leaderboardExam, setLeaderboardExam] = useState<Exam | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
+  const [modeSelectExam, setModeSelectExam] = useState<Exam | null>(null);
   const [selectedExamType, setSelectedExamType] = useState<'ALL' | ExamType>('ALL');
 
   const filteredExams = useMemo(() => {
@@ -73,10 +76,18 @@ export const HomePage: React.FC<HomePageProps> = ({
     user?.email?.split('@')[0] ||
     '';
 
+  const proceedWithExam = (exam: Exam) => {
+    const sections = resolveExamSections(exam);
+    if (sections.length > 1) {
+      setModeSelectExam(exam);
+    } else {
+      onStartExam(exam);
+    }
+  };
+
   const handleEnterExam = (exam: Exam) => {
     if (user) {
-      // Đã đăng nhập -> tự lấy tên & avatar vào thi ngay trong 1 click
-      onStartExam(exam);
+      proceedWithExam(exam);
       return;
     }
     setPendingExam(exam);
@@ -368,10 +379,23 @@ export const HomePage: React.FC<HomePageProps> = ({
                 const target = pendingExam;
                 setAuthModalOpen(false);
                 setPendingExam(null);
-                onStartExam(target);
+                proceedWithExam(target);
               }
             : undefined
         }
+      />
+
+      <ExamModeModal
+        exam={modeSelectExam}
+        onClose={() => setModeSelectExam(null)}
+        onStartFullExam={(ex) => {
+          setModeSelectExam(null);
+          onStartExam(ex);
+        }}
+        onStartSection={(ex, sectionId) => {
+          setModeSelectExam(null);
+          onStartExam(ex, sectionId);
+        }}
       />
     </div>
   );

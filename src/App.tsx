@@ -46,6 +46,7 @@ export function App() {
 
   const [studentName, setStudentName] = useState('');
   const [activeExam, setActiveExam] = useState<Exam | null>(null);
+  const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
   const [attemptResult, setAttemptResult] = useState<ExamAttemptResult | null>(null);
   const [xpAward, setXpAward] = useState<XpAwardSummary | null>(null);
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error'>('saving');
@@ -126,18 +127,29 @@ export function App() {
     setStudentName('');
   };
 
-  const handleStartExam = (exam: Exam) => {
+  const handleStartExam = (exam: Exam, targetSectionId?: string) => {
     setActiveExam(exam);
+    setActiveSectionId(targetSectionId);
     setAttemptResult(null);
     setXpAward(null);
     setView('exam');
   };
 
-  const handleSubmitExam = async (answers: UserAnswers, timeSpentSeconds: number) => {
+  const handleSubmitExam = async (
+    answers: UserAnswers,
+    timeSpentSeconds: number,
+    targetSectionId?: string
+  ) => {
     if (!activeExam) return;
     const resolvedName =
       studentName.trim() || getDisplayNameFromUser(user) || 'Thí sinh ẩn danh';
-    const result = gradeExam(activeExam, resolvedName, answers, timeSpentSeconds);
+    const result = gradeExam(
+      activeExam,
+      resolvedName,
+      answers,
+      timeSpentSeconds,
+      targetSectionId
+    );
 
     const earnedXp = calculateEarnedXp(result.score100, result.correctCount);
     setAttemptResult(result);
@@ -219,6 +231,7 @@ export function App() {
       <ExamRoom
         exam={activeExam}
         studentName={resolvedName}
+        targetSectionId={activeSectionId}
         isDark={isDark}
         onToggleDark={handleToggleDark}
         onSubmit={handleSubmitExam}
@@ -237,7 +250,7 @@ export function App() {
         xpAward={xpAward}
         leaderboardRefreshKey={leaderboardRefreshKey}
         onBackHome={() => setView('home')}
-        onRetry={() => handleStartExam(activeExam)}
+        onRetry={() => handleStartExam(activeExam, activeSectionId)}
       />
     );
   }

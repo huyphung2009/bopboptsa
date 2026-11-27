@@ -3,9 +3,11 @@ import type {
   ExamAttemptResult,
   Question,
   QuestionResult,
+  SectionResultSummary,
   UserAnswers,
   UserAnswerValue,
 } from '../types/exam';
+import { resolveExamSections } from './examSections';
 
 function normalizeShortAnswer(val: string): string {
   return val
@@ -134,14 +136,25 @@ export function gradeExam(
   exam: Exam,
   studentName: string,
   answers: UserAnswers,
-  timeSpentSeconds: number
+  timeSpentSeconds: number,
+  targetSectionId?: string
 ): ExamAttemptResult {
+  const resolvedSections = resolveExamSections(exam);
+  const activeSections = targetSectionId
+    ? resolvedSections.filter((s) => s.id === targetSectionId)
+    : resolvedSections;
+
+  const targetQuestions =
+    activeSections.length > 0
+      ? activeSections.flatMap((s) => s.questions)
+      : exam.questions;
+
   const questionResults: Record<string, QuestionResult> = {};
   let rawScore = 0;
   let maxScore = 0;
   let correctCount = 0;
 
-  for (const q of exam.questions) {
+  for (const q of targetQuestions) {
     const res = gradeQuestion(q, answers[q.id]);
     questionResults[q.id] = res;
     rawScore += res.earnedPoints;
@@ -151,19 +164,44 @@ export function gradeExam(
     }
   }
 
+  const sectionResults: SectionResultSummary[] = activeSections.map((sec) => {
+    let secCorrect = 0;
+    let secRaw = 0;
+    let secMax = 0;
+    for (const q of sec.questions) {
+      const r = questionResults[q.id];
+      if (r) {
+        secRaw += r.earnedPoints;
+        secMax += r.maxPoints;
+        if (r.isFullCorrect) secCorrect += 1;
+      }
+    }
+    return {
+      sectionId: sec.id,
+      title: sec.title,
+      correctCount: secCorrect,
+      totalQuestions: sec.questions.length,
+      rawScore: Math.round(secRaw * 100) / 100,
+      maxScore: Math.round(secMax * 100) / 100,
+    };
+  });
+
   const score100 =
     maxScore > 0 ? Math.round(((rawScore / maxScore) * 100) * 100) / 100 : 0;
 
   return {
     examId: exam.id,
-    examTitle: exam.title,
+    examTitle: targetSectionId && activeSections[0]
+      ? `${exam.title} (${activeSections[0].title})`
+      : exam.title,
     studentName,
     score100,
     rawScore: Math.round(rawScore * 100) / 100,
     maxScore: Math.round(maxScore * 100) / 100,
     correctCount,
-    totalQuestions: exam.questions.length,
+    totalQuestions: targetQuestions.length,
     timeSpentSeconds,
+    sectionResults,
     questionResults,
     answers,
     submittedAt: new Date().toISOString(),

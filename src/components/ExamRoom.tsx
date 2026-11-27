@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  ArrowRight,
   Bookmark,
   Calculator,
   ChevronLeft,
@@ -11,8 +12,12 @@ import {
   Send,
   Sun,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Exam, UserAnswers, UserAnswerValue } from '../types/exam';
+import {
+  isFullScreenMathOrStandalone,
+  resolveExamSections,
+} from '../utils/examSections';
 import { formatDuration, isQuestionAnswered } from '../utils/scoring';
 import { CalculatorModal } from './CalculatorModal';
 import { MathText } from './MathText';
@@ -21,9 +26,14 @@ import { QuestionRenderer } from './QuestionRenderer';
 interface ExamRoomProps {
   exam: Exam;
   studentName: string;
+  targetSectionId?: string;
   isDark: boolean;
   onToggleDark: () => void;
-  onSubmit: (answers: UserAnswers, timeSpentSeconds: number) => void;
+  onSubmit: (
+    answers: UserAnswers,
+    timeSpentSeconds: number,
+    targetSectionId?: string
+  ) => void;
   onExit: () => void;
 }
 
@@ -37,13 +47,34 @@ const QUESTION_TYPE_LABEL: Record<string, string> = {
 export const ExamRoom: React.FC<ExamRoomProps> = ({
   exam,
   studentName,
+  targetSectionId,
   isDark,
   onToggleDark,
   onSubmit,
   onExit,
 }) => {
-  const totalSeconds = Math.max(60, exam.duration_minutes * 60);
-  const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
+  const activeSections = useMemo(() => {
+    const all = resolveExamSections(exam);
+    if (targetSectionId) {
+      const filtered = all.filter((s) => s.id === targetSectionId);
+      return filtered.length > 0 ? filtered : all;
+    }
+    return all;
+  }, [exam, targetSectionId]);
+
+  const [activeSectionIdx, setActiveSectionIdx] = useState(0);
+  const currentSection = activeSections[activeSectionIdx];
+  const isLastSection = activeSectionIdx >= activeSections.length - 1;
+  const sectionQuestions = currentSection?.questions ?? [];
+  const sectionTotalSeconds = Math.max(
+    60,
+    (currentSection?.duration_minutes ?? exam.duration_minutes) * 60
+  );
+
+  const [remainingSeconds, setRemainingSeconds] = useState(sectionTotalSeconds);
+  const [accumulatedSeconds, setAccumulatedSeconds] = useState(0);
+  const [intermissionSeconds, setIntermissionSeconds] = useState<number | null>(null);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<UserAnswers>({});
   const [flagged, setFlagged] = useState<Record<string, boolean>>({});
@@ -51,23 +82,64 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Resizable split-screen state (percentage of left pane)
+  // Resizable split-screen state
   const [leftWidthPct, setLeftWidthPct] = useState(48);
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
   const splitContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const currentQuestion = exam.questions[currentIndex];
+  const currentQuestion = sectionQuestions[currentIndex];
   const currentPassage = useMemo(() => {
     if (!currentQuestion?.passageId) return null;
     return exam.passages.find((p) => p.id === currentQuestion.passageId) ?? null;
   }, [exam.passages, currentQuestion]);
 
-  const isMathSection =
-    currentQuestion?.section?.toLowerCase().includes('toán') ?? false;
-  const showSplitScreen = Boolean(currentPassage) && !isMathSection;
+  const showSplitScreen = !isFullScreenMathOrStandalone(
+    currentQuestion,
+    Boolean(currentPassage)
+  );
 
-  // Countdown timer
+  const advanceToNextSection = useCallback(() => {
+    const nextIdx = activeSectionIdx + 1;
+    const nextSec = activeSections[nextIdx];
+    if (!nextSec) return;
+    setIntermissionSeconds(null);
+    setActiveSectionIdx(nextIdx);
+    setCurrentIndex(0);
+    setRemainingSeconds(Math.max(60, nextSec.duration_minutes * 60));
+  }, [activeSectionIdx, activeSections]);
+
+  const completeCurrentSection = useCallback(
+    (timedOut = false) => {
+      if (isSubmitting) return;
+      const spentInSection = timedOut
+        ? sectionTotalSeconds
+        : Math.max(1, sectionTotalSeconds - remainingSeconds);
+      const nextTotalSpent = accumulatedSeconds + spentInSection;
+      setAccumulatedSeconds(nextTotalSpent);
+      setConfirmSubmitOpen(false);
+
+      if (isLastSection) {
+        setIsSubmitting(true);
+        onSubmit(answers, nextTotalSpent, targetSectionId);
+      } else {
+        setIntermissionSeconds(5);
+      }
+    },
+    [
+      isSubmitting,
+      sectionTotalSeconds,
+      remainingSeconds,
+      accumulatedSeconds,
+      isLastSection,
+      onSubmit,
+      answers,
+      targetSectionId,
+    ]
+  );
+
+  // Section countdown timer (paused during intermission)
   useEffect(() => {
+    if (intermissionSeconds !== null || isSubmitting) return;
     const timer = window.setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
@@ -78,15 +150,27 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
       });
     }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [intermissionSeconds, isSubmitting, activeSectionIdx]);
 
-  // Auto submit when timer hits 0
+  // Auto-submit / advance when section timer hits 0
   useEffect(() => {
-    if (remainingSeconds === 0 && !isSubmitting) {
-      setIsSubmitting(true);
-      onSubmit(answers, totalSeconds);
+    if (remainingSeconds === 0 && intermissionSeconds === null && !isSubmitting) {
+      completeCurrentSection(true);
     }
-  }, [remainingSeconds, isSubmitting, answers, totalSeconds, onSubmit]);
+  }, [remainingSeconds, intermissionSeconds, isSubmitting, completeCurrentSection]);
+
+  // 5-second intermission countdown
+  useEffect(() => {
+    if (intermissionSeconds === null) return;
+    if (intermissionSeconds <= 0) {
+      advanceToNextSection();
+      return;
+    }
+    const t = window.setTimeout(() => {
+      setIntermissionSeconds((s) => (s !== null ? s - 1 : null));
+    }, 1000);
+    return () => window.clearTimeout(t);
+  }, [intermissionSeconds, advanceToNextSection]);
 
   // Keyboard shortcuts: Left / Right Arrow to navigate questions
   useEffect(() => {
@@ -100,20 +184,20 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
       ) {
         return;
       }
-      if (confirmSubmitOpen) return;
+      if (confirmSubmitOpen || intermissionSeconds !== null) return;
 
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         setCurrentIndex((i) => Math.max(0, i - 1));
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        setCurrentIndex((i) => Math.min(exam.questions.length - 1, i + 1));
+        setCurrentIndex((i) => Math.min(sectionQuestions.length - 1, i + 1));
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [exam.questions.length, confirmSubmitOpen]);
+  }, [sectionQuestions.length, confirmSubmitOpen, intermissionSeconds]);
 
   // Resizable divider pointer handlers
   useEffect(() => {
@@ -149,18 +233,51 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
     setFlagged((prev) => ({ ...prev, [qId]: !prev[qId] }));
   };
 
-  const answeredCount = useMemo(() => {
-    return exam.questions.filter((q) => isQuestionAnswered(q, answers[q.id])).length;
-  }, [exam.questions, answers]);
-
-  const handleManualSubmit = () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    const spent = Math.max(1, totalSeconds - remainingSeconds);
-    onSubmit(answers, spent);
-  };
+  const answeredInSection = useMemo(() => {
+    return sectionQuestions.filter((q) => isQuestionAnswered(q, answers[q.id])).length;
+  }, [sectionQuestions, answers]);
 
   const isTimeLow = remainingSeconds <= 300;
+
+  // Intermission Screen (between sections)
+  if (intermissionSeconds !== null) {
+    const nextSec = activeSections[activeSectionIdx + 1];
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-7 shadow-sm text-center space-y-5">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-2xl font-mono font-bold text-[#B91C1C] dark:text-red-400">
+            {intermissionSeconds}
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              Đã hoàn thành {currentSection?.title}
+            </p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100">
+              Chuẩn bị chuyển sang Phần {activeSectionIdx + 2}/{activeSections.length}
+            </h2>
+            {nextSec && (
+              <p className="text-sm text-slate-600 dark:text-zinc-400">
+                <strong className="text-slate-900 dark:text-zinc-200">
+                  {nextSec.title}
+                </strong>{' '}
+                · {nextSec.questions.length} câu · {nextSec.duration_minutes} phút
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={advanceToNextSection}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors"
+          >
+            Bắt đầu ngay
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -180,11 +297,16 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
             <span className="hidden sm:inline">Thoát</span>
           </button>
           <div className="min-w-0">
-            <h1 className="text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">
-              {exam.title}
+            <h1 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">
+              {activeSections.length > 1
+                ? `Phần ${activeSectionIdx + 1}/${activeSections.length}: ${currentSection?.title}`
+                : currentSection?.title || exam.title}
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
-              Thí sinh: <span className="font-medium text-slate-700 dark:text-zinc-300">{studentName}</span>
+              {exam.title} · Thí sinh:{' '}
+              <span className="font-medium text-slate-700 dark:text-zinc-300">
+                {studentName}
+              </span>
             </p>
           </div>
         </div>
@@ -223,22 +345,22 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
           <button
             onClick={() => setConfirmSubmitOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-800 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#B91C1C] hover:bg-red-800 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors"
           >
             <Send className="w-3.5 h-3.5" />
-            Nộp bài
+            {isLastSection ? 'Nộp bài' : 'Nộp phần này'}
           </button>
         </div>
       </header>
 
       {/* Main Content + Question Navigator */}
       <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
-        {/* Smart Workspace: Resizable Split-Screen OR Full-Screen Math/Standalone */}
+        {/* Smart Workspace */}
         <div
           ref={splitContainerRef}
           className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden"
         >
-          {/* Left Pane: Passage (only when passage exists & not Math) */}
+          {/* Left Pane: Passage */}
           {showSplitScreen && currentPassage && (
             <>
               <section
@@ -259,7 +381,6 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                 </div>
               </section>
 
-              {/* Resizable Divider (desktop) */}
               <div
                 role="separator"
                 aria-orientation="vertical"
@@ -278,56 +399,56 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
               showSplitScreen ? 'p-5 sm:p-7' : 'p-4 sm:p-8 lg:p-10'
             }`}
           >
-            <div
-              className={
-                showSplitScreen
-                  ? 'w-full max-w-2xl mx-auto'
-                  : 'max-w-4xl mx-auto w-full rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-xs p-6 sm:p-9'
-              }
-            >
-              {/* Question Meta Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-6 pb-3.5 border-b border-slate-200/80 dark:border-zinc-800">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-md bg-slate-900 dark:bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-white dark:text-zinc-900 font-mono">
-                    Câu {currentIndex + 1}/{exam.questions.length}
-                  </span>
-                  <span className="rounded-md border border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/70 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-zinc-300">
-                    {currentQuestion.section}
-                  </span>
-                  <span className="text-xs text-slate-400 dark:text-zinc-500">
-                    • {QUESTION_TYPE_LABEL[currentQuestion.type] ?? currentQuestion.type}
-                  </span>
+            {currentQuestion && (
+              <div
+                className={
+                  showSplitScreen
+                    ? 'w-full max-w-2xl mx-auto'
+                    : 'max-w-4xl mx-auto w-full rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-xs p-6 sm:p-9'
+                }
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-6 pb-3.5 border-b border-slate-200/80 dark:border-zinc-800">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-slate-900 dark:bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-white dark:text-zinc-900 font-mono">
+                      Câu {currentIndex + 1}/{sectionQuestions.length}
+                    </span>
+                    <span className="rounded-md border border-slate-200/80 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/70 px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-zinc-300">
+                      {currentQuestion.section}
+                    </span>
+                    <span className="text-xs text-slate-400 dark:text-zinc-500">
+                      • {QUESTION_TYPE_LABEL[currentQuestion.type] ?? currentQuestion.type}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleFlag(currentQuestion.id)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium border transition-colors ${
+                      flagged[currentQuestion.id]
+                        ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300'
+                        : 'bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <Bookmark
+                      className={`w-3.5 h-3.5 ${
+                        flagged[currentQuestion.id]
+                          ? 'fill-amber-500 text-amber-500'
+                          : ''
+                      }`}
+                    />
+                    {flagged[currentQuestion.id] ? 'Đã đánh dấu' : 'Xem lại'}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => toggleFlag(currentQuestion.id)}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium border transition-colors ${
-                    flagged[currentQuestion.id]
-                      ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300'
-                      : 'bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800'
-                  }`}
-                >
-                  <Bookmark
-                    className={`w-3.5 h-3.5 ${
-                      flagged[currentQuestion.id]
-                        ? 'fill-amber-500 text-amber-500'
-                        : ''
-                    }`}
+                <div className={showSplitScreen ? 'text-[15px]' : 'text-base sm:text-[17px]'}>
+                  <QuestionRenderer
+                    question={currentQuestion}
+                    answer={answers[currentQuestion.id]}
+                    onChange={(val) => handleAnswerChange(currentQuestion.id, val)}
                   />
-                  {flagged[currentQuestion.id] ? 'Đã đánh dấu' : 'Xem lại'}
-                </button>
+                </div>
               </div>
-
-              {/* Question Body */}
-              <div className={showSplitScreen ? 'text-[15px]' : 'text-base sm:text-[17px]'}>
-                <QuestionRenderer
-                  question={currentQuestion}
-                  answer={answers[currentQuestion.id]}
-                  onChange={(val) => handleAnswerChange(currentQuestion.id, val)}
-                />
-              </div>
-            </div>
+            )}
 
             {/* Bottom Prev / Next */}
             <div
@@ -351,9 +472,9 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
               <button
                 type="button"
-                disabled={currentIndex === exam.questions.length - 1}
+                disabled={currentIndex === sectionQuestions.length - 1}
                 onClick={() =>
-                  setCurrentIndex((i) => Math.min(exam.questions.length - 1, i + 1))
+                  setCurrentIndex((i) => Math.min(sectionQuestions.length - 1, i + 1))
                 }
                 className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 dark:bg-zinc-100 px-4 py-2 text-xs sm:text-sm font-semibold text-white dark:text-zinc-900 hover:bg-slate-800 dark:hover:bg-zinc-200 disabled:opacity-40 transition-colors"
               >
@@ -364,19 +485,19 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
           </section>
         </div>
 
-        {/* Minimalist Question Navigator Sidebar */}
+        {/* Question Navigator Sidebar (current section) */}
         <aside className="shrink-0 lg:w-60 border-t lg:border-t-0 lg:border-l border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 overflow-y-auto custom-scrollbar">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-              Danh sách câu
+              Câu hỏi phần này
             </h3>
             <span className="text-xs font-mono font-semibold text-slate-700 dark:text-zinc-300">
-              {answeredCount}/{exam.questions.length}
+              {answeredInSection}/{sectionQuestions.length}
             </span>
           </div>
 
           <div className="grid grid-cols-6 sm:grid-cols-10 lg:grid-cols-4 gap-1.5">
-            {exam.questions.map((q, idx) => {
+            {sectionQuestions.map((q, idx) => {
               const isCurrent = idx === currentIndex;
               const isDone = isQuestionAnswered(q, answers[q.id]);
               const isFlag = !!flagged[q.id];
@@ -425,26 +546,30 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
       {/* Calculator */}
       <CalculatorModal isOpen={showCalc} onClose={() => setShowCalc(false)} />
 
-      {/* Submit Confirmation Modal */}
+      {/* Submit Section / Exam Confirmation Modal */}
       {confirmSubmitOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
           <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl border border-slate-200/80 dark:border-zinc-800">
             <div className="flex items-center gap-2.5 mb-3">
-              <AlertTriangle className="w-5 h-5 text-red-700 dark:text-red-500 shrink-0" />
+              <AlertTriangle className="w-5 h-5 text-[#B91C1C] dark:text-red-500 shrink-0" />
               <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100">
-                Xác nhận nộp bài
+                {isLastSection
+                  ? 'Xác nhận nộp bài & Xem kết quả'
+                  : `Xác nhận nộp ${currentSection?.title}?`}
               </h3>
             </div>
             <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed">
-              Bạn đã hoàn thành{' '}
+              Bạn đã làm{' '}
               <span className="font-semibold text-slate-900 dark:text-zinc-100 font-mono">
-                {answeredCount}/{exam.questions.length}
+                {answeredInSection}/{sectionQuestions.length}
               </span>{' '}
-              câu hỏi. Thời gian còn lại:{' '}
-              <span className="font-semibold text-red-700 dark:text-red-400 font-mono">
+              câu trong phần này. Thời gian còn lại:{' '}
+              <span className="font-semibold text-[#B91C1C] dark:text-red-400 font-mono">
                 {formatDuration(remainingSeconds)}
               </span>
               .
+              {!isLastSection &&
+                ' Sau khi nộp, đáp án phần này sẽ được khóa và chuyển sang phần tiếp theo.'}
             </p>
             <div className="mt-6 flex items-center justify-end gap-2">
               <button
@@ -456,11 +581,11 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
               </button>
               <button
                 type="button"
-                onClick={handleManualSubmit}
+                onClick={() => completeCurrentSection(false)}
                 disabled={isSubmitting}
-                className="rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition-colors"
+                className="rounded-lg bg-[#B91C1C] hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50 transition-colors"
               >
-                {isSubmitting ? 'Đang chấm điểm...' : 'Nộp bài ngay'}
+                {isLastSection ? 'Nộp bài & Xem kết quả' : 'Nộp phần này'}
               </button>
             </div>
           </div>

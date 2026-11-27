@@ -1,5 +1,5 @@
 import { SAMPLE_EXAM } from '../data/sampleExam';
-import type { AttemptRecord, Exam, Passage, Question } from '../types/exam';
+import type { AttemptRecord, Exam, ExamSection, Passage, Question } from '../types/exam';
 import { normalizeExamType } from '../utils/examTypes';
 import { supabase } from './supabase';
 
@@ -24,6 +24,12 @@ function normalizeExamRow(row: any): Exam {
       ? row.questions
       : [];
 
+  const sections: ExamSection[] | undefined = Array.isArray(payload.sections)
+    ? payload.sections
+    : Array.isArray(row.sections)
+      ? row.sections
+      : undefined;
+
   return {
     id: String(row.id ?? payload.id ?? crypto.randomUUID()),
     title: String(row.title ?? payload.title ?? 'Đề thi chưa đặt tên'),
@@ -33,6 +39,7 @@ function normalizeExamRow(row: any): Exam {
     exam_type: normalizeExamType(row.exam_type ?? payload.exam_type),
     section: row.section ?? payload.section ?? 'Tổng hợp',
     duration_minutes: Number(row.duration_minutes ?? payload.duration_minutes ?? 60),
+    sections,
     passages,
     questions,
     created_at: row.created_at,
@@ -174,6 +181,7 @@ export async function upsertExam(
       exam_type: normalizeExamType(exam.exam_type),
       section: exam.section ?? 'Tổng hợp',
       duration_minutes: exam.duration_minutes,
+      ...(exam.sections && exam.sections.length > 0 ? { sections: exam.sections } : {}),
       passages: exam.passages,
       questions: exam.questions,
     };

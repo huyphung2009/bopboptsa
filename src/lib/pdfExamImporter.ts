@@ -1,4 +1,4 @@
-import type { Exam, ExamType, Passage, Question } from '../types/exam';
+import type { Exam, ExamSection, ExamType, Passage, Question } from '../types/exam';
 import { normalizeExamType } from '../utils/examTypes';
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
@@ -38,7 +38,8 @@ YÊU CẦU BẮT BUỘC:
    - "true_false": Câu Đúng/Sai nhiều ý. Cần có "statements": [{"id":"s1","text":"...","correct":true}, ...].
    - "drag_drop": Điền từ / Kéo thả chỗ trống. Trong "prompt" đặt placeholder dạng [[b1]], [[b2]]...; cần có "blanks": [{"id":"b1","correctWord":"..."}] và "wordBank": ["...", ...] (bao gồm cả từ đúng và từ nhiễu nếu có).
    - "short_answer": Trả lời ngắn / Điền số. Cần có "correctAnswers": ["..."].
-5. Nếu cuối file PDF có bảng đáp án hoặc hướng dẫn giải, hãy điền chính xác đáp án đúng vào từng câu và trích xuất lời giải chi tiết vào trường "explanation" (hỗ trợ KaTeX). Nếu không có đáp án trong PDF, đặt đáp án mặc định hợp lý và ghi chú ngắn trong "explanation".
+5. Nếu đề thi trong PDF là đề tổng hợp gồm nhiều phần (ví dụ TSA: Tư duy Toán học 60p - Tư duy Đọc hiểu 30p - Tư duy Khoa học 60p; hoặc HSA: Định lượng - Định tính - Khoa học), hãy tạo mảng "sections" với id "sec-1", "sec-2",... kèm "duration_minutes" tương ứng cho từng phần, và gắn "sectionId" cho mỗi câu hỏi khớp với id phần đó.
+6. Nếu cuối file PDF có bảng đáp án hoặc hướng dẫn giải, hãy điền chính xác đáp án đúng vào từng câu và trích xuất lời giải chi tiết vào trường "explanation" (hỗ trợ KaTeX). Nếu không có đáp án trong PDF, đặt đáp án mặc định hợp lý và ghi chú ngắn trong "explanation".
 
 SCHEMA JSON MỤC TIÊU:
 {
@@ -47,6 +48,9 @@ SCHEMA JSON MỤC TIÊU:
   "exam_type": "${targetExamType}",
   "section": "Tổng hợp" | "Tư duy Toán học" | "Tư duy Đọc hiểu" | "Tư duy Khoa học",
   "duration_minutes": 60,
+  "sections": [
+    { "id": "sec-1", "title": "Phần 1: Tư duy Toán học", "duration_minutes": 60 }
+  ],
   "passages": [
     {
       "id": "p1",
@@ -60,6 +64,7 @@ SCHEMA JSON MỤC TIÊU:
       "id": "q1",
       "type": "single_choice",
       "section": "Tư duy Toán học",
+      "sectionId": "sec-1",
       "prompt": "Nội dung câu hỏi...",
       "options": [
         {"id": "A", "text": "..."},
@@ -77,6 +82,14 @@ SCHEMA JSON MỤC TIÊU:
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sanitizeExtractedExam(raw: any, targetExamType: ExamType): Partial<Exam> {
+  const sections: ExamSection[] | undefined = Array.isArray(raw?.sections)
+    ? raw.sections.map((s: Partial<ExamSection>, idx: number) => ({
+        id: String(s.id || `sec-${idx + 1}`),
+        title: String(s.title || `Phần ${idx + 1}`),
+        duration_minutes: Math.max(5, Number(s.duration_minutes ?? 30)),
+      }))
+    : undefined;
+
   const passages: Passage[] = Array.isArray(raw?.passages)
     ? raw.passages.map((p: Partial<Passage>, idx: number) => ({
         id: String(p.id || `p${idx + 1}`),
@@ -100,6 +113,7 @@ function sanitizeExtractedExam(raw: any, targetExamType: ExamType): Partial<Exam
           id: String(q.id || `q_${Date.now().toString(36)}_${idx + 1}`),
           type,
           section: String(q.section || 'Tư duy Toán học'),
+          sectionId: q.sectionId ? String(q.sectionId) : undefined,
           passageId: q.passageId ? String(q.passageId) : undefined,
           prompt: String(q.prompt || ''),
           options: Array.isArray(q.options) ? q.options : undefined,
@@ -123,6 +137,7 @@ function sanitizeExtractedExam(raw: any, targetExamType: ExamType): Partial<Exam
     exam_type: normalizeExamType(raw?.exam_type ?? targetExamType),
     section: String(raw?.section || 'Tổng hợp'),
     duration_minutes: Math.max(5, Number(raw?.duration_minutes ?? 60)),
+    sections,
     passages,
     questions,
   };

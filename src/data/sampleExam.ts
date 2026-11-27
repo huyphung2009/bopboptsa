@@ -9,6 +9,11 @@ export const SAMPLE_EXAM: Exam = {
   section: 'Tổng hợp (Toán - Đọc - Khoa học)',
   duration_minutes: 60,
   is_sample: true,
+  sections: [
+    { id: 'sec-math', title: 'Phần 1: Tư duy Toán học', duration_minutes: 25 },
+    { id: 'sec-reading', title: 'Phần 2: Tư duy Đọc hiểu', duration_minutes: 15 },
+    { id: 'sec-science', title: 'Phần 3: Tư duy Khoa học', duration_minutes: 20 },
+  ],
   passages: [
     {
       id: 'p-math',

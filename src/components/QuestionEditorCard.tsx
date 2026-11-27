@@ -13,13 +13,14 @@ import {
   X,
 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import type { Passage, Question, QuestionType } from '../types/exam';
+import type { ExamSection, Passage, Question, QuestionType } from '../types/exam';
 import { MathText } from './MathText';
 
 interface QuestionEditorCardProps {
   question: Question;
   index: number;
   total: number;
+  sections?: ExamSection[];
   passages: Passage[];
   onChange: (updated: Question) => void;
   onMoveUp: () => void;
@@ -71,6 +72,7 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
   question,
   index,
   total,
+  sections = [],
   passages,
   onChange,
   onMoveUp,
@@ -183,6 +185,30 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
               </option>
             ))}
           </select>
+
+          {sections.length > 0 && (
+            <select
+              value={question.sectionId ?? ''}
+              onChange={(e) => {
+                const secId = e.target.value || undefined;
+                const matched = sections.find((s) => s.id === secId);
+                onChange({
+                  ...question,
+                  sectionId: secId,
+                  section: matched ? matched.title : question.section,
+                });
+              }}
+              className="rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 text-xs font-medium text-[#B91C1C] dark:text-red-400 max-w-[190px] focus:border-red-700 focus:outline-none"
+              title="Thuộc phần thi"
+            >
+              <option value="">Chọn phần thi...</option>
+              {sections.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.title}
+                </option>
+              ))}
+            </select>
+          )}
 
           {passages.length > 0 && (
             <select

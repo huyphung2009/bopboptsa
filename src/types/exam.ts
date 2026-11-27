@@ -6,6 +6,12 @@ export type QuestionType =
   | 'drag_drop'
   | 'short_answer';
 
+export interface ExamSection {
+  id: string;
+  title: string;
+  duration_minutes: number;
+}
+
 export interface Passage {
   id: string;
   title: string;
@@ -33,6 +39,7 @@ export interface Question {
   id: string;
   type: QuestionType;
   section: string;
+  sectionId?: string;
   passageId?: string;
   prompt: string;
   // single_choice
@@ -58,6 +65,7 @@ export interface Exam {
   exam_type?: ExamType;
   section?: string;
   duration_minutes: number;
+  sections?: ExamSection[];
   passages: Passage[];
   questions: Question[];
   created_at?: string;
@@ -80,6 +88,15 @@ export interface QuestionResult {
   isAnswered: boolean;
 }
 
+export interface SectionResultSummary {
+  sectionId: string;
+  title: string;
+  correctCount: number;
+  totalQuestions: number;
+  rawScore: number;
+  maxScore: number;
+}
+
 export interface ExamAttemptResult {
   examId: string;
   examTitle: string;
@@ -90,6 +107,7 @@ export interface ExamAttemptResult {
   correctCount: number;
   totalQuestions: number;
   timeSpentSeconds: number;
+  sectionResults?: SectionResultSummary[];
   questionResults: Record<string, QuestionResult>;
   answers: UserAnswers;
   submittedAt: string;

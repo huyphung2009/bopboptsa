@@ -35,7 +35,7 @@ import {
   SUPER_ADMIN_EMAIL,
   type AppAdminRecord,
 } from '../lib/profileService';
-import type { Exam, ExamType, Passage, Question } from '../types/exam';
+import type { Exam, ExamSection, ExamType, Passage, Question } from '../types/exam';
 import { EXAM_TYPES, getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
 import { Logo } from './Logo';
 import { MathText } from './MathText';
@@ -148,6 +148,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [examType, setExamType] = useState<ExamType>('TSA');
   const [section, setSection] = useState('Tổng hợp');
   const [durationMinutes, setDurationMinutes] = useState(60);
+  const [sections, setSections] = useState<ExamSection[]>([]);
   const [passages, setPassages] = useState<Passage[]>([]);
   const [questions, setQuestions] = useState<Question[]>([createEmptyQuestion(1)]);
 
@@ -245,6 +246,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setExamType('TSA');
     setSection('Tổng hợp');
     setDurationMinutes(60);
+    setSections([]);
     setPassages([]);
     setQuestions([createEmptyQuestion(1)]);
     setStatusBanner(null);
@@ -258,6 +260,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setExamType(normalizeExamType(exam.exam_type));
     setSection(exam.section || 'Tổng hợp');
     setDurationMinutes(exam.duration_minutes || 60);
+    setSections(exam.sections ?? []);
     setPassages(exam.passages ?? []);
     setQuestions(
       exam.questions.length > 0 ? exam.questions : [createEmptyQuestion(1)]
@@ -273,6 +276,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       exam_type: normalizeExamType(exam.exam_type),
       section: exam.section ?? 'Tổng hợp',
       duration_minutes: exam.duration_minutes,
+      ...(exam.sections && exam.sections.length > 0 ? { sections: exam.sections } : {}),
       passages: exam.passages,
       questions: exam.questions,
     };
@@ -338,13 +342,21 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
 
     setSaving(true);
+    const totalSectionMinutes = sections.reduce(
+      (sum, s) => sum + (Number(s.duration_minutes) || 0),
+      0
+    );
     const res = await upsertExam({
       id: editingId,
       title: title.trim(),
       description: description.trim() || 'Đề luyện thi trực tuyến Parabol',
       exam_type: examType,
       section,
-      duration_minutes: Math.max(5, Number(durationMinutes) || 60),
+      duration_minutes:
+        sections.length > 0 && totalSectionMinutes > 0
+          ? totalSectionMinutes
+          : Math.max(5, Number(durationMinutes) || 60),
+      sections: sections.length > 0 ? sections : undefined,
       passages,
       questions,
     });
@@ -393,6 +405,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       setExamType(normalizeExamType(extracted.exam_type ?? examType));
       setSection(extracted.section ?? 'Tổng hợp');
       setDurationMinutes(Number(extracted.duration_minutes ?? 60));
+      setSections(extracted.sections ?? []);
       setPassages(extracted.passages ?? []);
       setQuestions(
         extracted.questions && extracted.questions.length > 0
@@ -438,6 +451,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setExamType(normalizeExamType(parsed.exam_type));
     setSection(parsed.section ?? 'Tổng hợp');
     setDurationMinutes(Number(parsed.duration_minutes ?? 60));
+    setSections(Array.isArray(parsed.sections) ? parsed.sections : []);
     setPassages(Array.isArray(parsed.passages) ? parsed.passages : []);
     setQuestions(parsed.questions);
     setJsonModalOpen(false);
@@ -1011,12 +1025,102 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               </div>
             </section>
 
+            {/* Sections Manager (Multi-section timing) */}
+            <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                    2. Cấu trúc Phần thi & Thời gian riêng (tùy chọn cho đề tổng hợp)
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    let idx = sections.length + 1;
+                    while (sections.some((s) => s.id === `sec-${idx}`)) {
+                      idx += 1;
+                    }
+                    setSections((prev) => [
+                      ...prev,
+                      {
+                        id: `sec-${idx}`,
+                        title: `Phần ${idx}`,
+                        duration_minutes: 30,
+                      },
+                    ]);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Thêm phần thi
+                </button>
+              </div>
+
+              {sections.length === 0 ? (
+                <p className="text-xs text-slate-400 dark:text-zinc-500">
+                  Chưa chia phần riêng. Nếu đề có nhiều phần với đồng hồ đếm ngược riêng (VD: Tư duy Toán học 60p, Đọc hiểu 30p, Khoa học 60p), hãy bấm "+ Thêm phần thi".
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {sections.map((sec, idx) => (
+                    <div
+                      key={sec.id}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 p-3"
+                    >
+                      <span className="rounded bg-slate-200 dark:bg-zinc-800 px-2 py-1 text-[11px] font-mono font-semibold text-slate-700 dark:text-zinc-300">
+                        {sec.id}
+                      </span>
+                      <input
+                        type="text"
+                        value={sec.title}
+                        onChange={(e) => {
+                          const next = [...sections];
+                          next[idx] = { ...sec, title: e.target.value };
+                          setSections(next);
+                        }}
+                        placeholder="Tên phần thi (VD: Phần 1: Tư duy Toán học)"
+                        className="flex-1 min-w-[200px] rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min={1}
+                          max={240}
+                          value={sec.duration_minutes}
+                          onChange={(e) => {
+                            const next = [...sections];
+                            next[idx] = {
+                              ...sec,
+                              duration_minutes: Math.max(1, Number(e.target.value)),
+                            };
+                            setSections(next);
+                          }}
+                          className="w-20 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-xs sm:text-sm font-mono text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                        />
+                        <span className="text-xs text-slate-500">phút</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSections((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="p-1.5 text-slate-400 hover:text-red-600"
+                        title="Xóa phần thi"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
             {/* Passages Manager */}
             <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                    2. Ngữ liệu / Đoạn văn (tùy chọn cho Đọc hiểu & Khoa học)
+                    3. Ngữ liệu / Đoạn văn (tùy chọn cho Đọc hiểu & Khoa học)
                   </h3>
                 </div>
                 <button
@@ -1115,7 +1219,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             <section className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                  3. Danh sách câu hỏi ({questions.length} câu)
+                  4. Danh sách câu hỏi ({questions.length} câu)
                 </h3>
               </div>
 
@@ -1126,6 +1230,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     question={q}
                     index={idx}
                     total={questions.length}
+                    sections={sections}
                     passages={passages}
                     onChange={(updated) => {
                       const next = [...questions];

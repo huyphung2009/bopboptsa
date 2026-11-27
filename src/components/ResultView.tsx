@@ -195,13 +195,57 @@ export const ResultView: React.FC<ResultViewProps> = ({
           </div>
         </section>
 
+        {/* Per-Section Breakdown */}
+        {result.sectionResults && result.sectionResults.length > 0 && (
+          <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 sm:p-6 shadow-xs space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+              Thống kê theo từng phần thi
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {result.sectionResults.map((sec) => {
+                const pct =
+                  sec.totalQuestions > 0
+                    ? Math.round((sec.correctCount / sec.totalQuestions) * 100)
+                    : 0;
+                return (
+                  <div
+                    key={sec.sectionId}
+                    className="rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-[#FAFAFA] dark:bg-zinc-950 p-3.5 space-y-2"
+                  >
+                    <div className="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                      {sec.title}
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-lg font-bold font-mono text-slate-900 dark:text-zinc-100">
+                        {sec.correctCount}/{sec.totalQuestions}{' '}
+                        <span className="text-xs font-normal text-slate-500">câu</span>
+                      </span>
+                      <span className="text-xs font-mono font-semibold text-[#B91C1C] dark:text-red-400">
+                        {sec.rawScore}/{sec.maxScore} đ
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-slate-200/80 dark:bg-zinc-800 overflow-hidden">
+                      <div
+                        style={{ width: `${pct}%` }}
+                        className="h-full rounded-full bg-[#B91C1C]"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Detailed Review */}
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
             Chi tiết bài làm & Lời giải
           </h2>
 
-          {exam.questions.map((q, idx) => {
+          {exam.questions
+            .filter((q) => Boolean(result.questionResults[q.id]))
+            .map((q, idx) => {
             const qRes = result.questionResults[q.id];
             const passage = q.passageId
               ? exam.passages.find((p) => p.id === q.passageId)
