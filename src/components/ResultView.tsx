@@ -6,21 +6,32 @@ import {
   CloudOff,
   HelpCircle,
   RotateCcw,
+  Sparkles,
   Trophy,
   XCircle,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import type { Exam, ExamAttemptResult } from '../types/exam';
+import { getRankByXp } from '../utils/ranks';
 import { formatDuration } from '../utils/scoring';
 import { LeaderboardModal } from './LeaderboardModal';
 import { MathText } from './MathText';
 import { QuestionRenderer } from './QuestionRenderer';
+import { RankBadge, XpProgressBar } from './RankBadge';
+
+export interface XpAwardSummary {
+  earnedXp: number;
+  previousXp: number;
+  newXp: number;
+  isGuest: boolean;
+}
 
 interface ResultViewProps {
   exam: Exam;
   result: ExamAttemptResult;
   saveStatus: 'saving' | 'saved' | 'error';
   saveError?: string;
+  xpAward: XpAwardSummary | null;
   leaderboardRefreshKey: number;
   onBackHome: () => void;
   onRetry: () => void;
@@ -31,11 +42,17 @@ export const ResultView: React.FC<ResultViewProps> = ({
   result,
   saveStatus,
   saveError,
+  xpAward,
   leaderboardRefreshKey,
   onBackHome,
   onRetry,
 }) => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+  const oldRank = xpAward ? getRankByXp(xpAward.previousXp) : null;
+  const newRank = xpAward ? getRankByXp(xpAward.newXp) : null;
+  const leveledUp =
+    Boolean(oldRank && newRank && newRank.level > oldRank.level && !xpAward?.isGuest);
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-16">
@@ -69,7 +86,45 @@ export const ResultView: React.FC<ResultViewProps> = ({
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
+        {/* Level Up / +XP Banner */}
+        {xpAward && (
+          <section
+            className={`rounded-xl border p-4 sm:p-5 shadow-xs transition-all ${
+              leveledUp
+                ? 'border-amber-300 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/30'
+                : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 px-2 py-0.5 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                    <Sparkles className="w-3 h-3" />+{xpAward.earnedXp} XP
+                  </span>
+                  {!xpAward.isGuest && <RankBadge xp={xpAward.newXp} />}
+                  {leveledUp && newRank && (
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300 animate-pulse">
+                      Chúc mừng bạn đã thăng cấp lên {newRank.name}!
+                    </span>
+                  )}
+                </div>
+                {xpAward.isGuest && (
+                  <p className="text-xs text-slate-500 dark:text-zinc-400">
+                    Đăng nhập Google để tích lũy XP và thăng hạng Cấp bậc Bách Khoa qua từng bài thi.
+                  </p>
+                )}
+              </div>
+
+              {!xpAward.isGuest && (
+                <div className="w-full sm:w-64">
+                  <XpProgressBar xp={xpAward.newXp} />
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* Clean Score Summary Card */}
         <section className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-7 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">

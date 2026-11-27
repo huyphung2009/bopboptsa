@@ -1,8 +1,10 @@
 import { Award, Clock, Crown, Medal, RefreshCw, Trophy, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { getLeaderboard } from '../lib/examService';
+import { fetchProfilesByIds, type UserProfile } from '../lib/profileService';
 import type { AttemptRecord, Exam } from '../types/exam';
 import { formatDuration } from '../utils/scoring';
+import { RankBadge } from './RankBadge';
 
 interface LeaderboardModalProps {
   exam: Exam | null;
@@ -23,6 +25,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   onClose,
 }) => {
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Record<string, UserProfile>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +35,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     const res = await getLeaderboard(examId);
     setAttempts(res.attempts);
     setError(res.errorMessage ?? null);
+
+    const userIds = res.attempts
+      .map((a) => a.user_id)
+      .filter((id): id is string => Boolean(id));
+    if (userIds.length > 0) {
+      const profiles = await fetchProfilesByIds(userIds);
+      setProfilesMap(profiles);
+    } else {
+      setProfilesMap({});
+    }
+
     setLoading(false);
   }, []);
 
@@ -44,7 +58,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
-      <div className="w-full max-w-2xl rounded-xl bg-white dark:bg-zinc-900 shadow-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
+      <div className="w-full max-w-3xl rounded-xl bg-white dark:bg-zinc-900 shadow-xl border border-slate-200/80 dark:border-zinc-800 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/80 dark:border-zinc-800">
           <div className="flex items-center gap-3 min-w-0">
             <Trophy className="w-5 h-5 text-red-700 dark:text-red-500 shrink-0" />
@@ -103,7 +117,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <thead>
                   <tr className="border-b border-slate-200/80 dark:border-zinc-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
                     <th className="py-2.5 px-3">Hạng</th>
-                    <th className="py-2.5 px-3">Thí sinh</th>
+                    <th className="py-2.5 px-3">Thí sinh & Cấp bậc</th>
                     <th className="py-2.5 px-3 text-right">Điểm (/100)</th>
                     <th className="py-2.5 px-3 text-right">Đúng</th>
                     <th className="py-2.5 px-3 text-right">Thời gian</th>
@@ -112,6 +126,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/80 text-sm">
                   {attempts.map((item, idx) => {
                     const rank = idx + 1;
+                    const profile = item.user_id ? profilesMap[item.user_id] : undefined;
+
                     return (
                       <tr
                         key={item.id ?? `${item.student_name}-${idx}`}
@@ -154,9 +170,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                                 {getInitials(item.student_name)}
                               </div>
                             )}
-                            <span className="font-medium text-slate-800 dark:text-zinc-200 truncate max-w-[170px] sm:max-w-[240px]">
-                              {item.student_name}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-2 min-w-0">
+                              <span className="font-medium text-slate-800 dark:text-zinc-200 truncate max-w-[140px] sm:max-w-[200px]">
+                                {item.student_name}
+                              </span>
+                              {profile ? (
+                                <RankBadge xp={profile.xp} compact />
+                              ) : (
+                                <span className="text-[10px] text-slate-400 dark:text-zinc-500">
+                                  Khách
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </td>
 

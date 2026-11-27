@@ -16,16 +16,27 @@ import {
   Shield,
   Trash2,
   Upload,
+  UserPlus,
+  Users,
   X,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { deleteExam, fetchExams, upsertExam } from '../lib/examService';
+import {
+  addAppAdmin,
+  fetchAppAdmins,
+  removeAppAdmin,
+  SUPER_ADMIN_EMAIL,
+  type AppAdminRecord,
+} from '../lib/profileService';
 import type { Exam, Passage, Question } from '../types/exam';
 import { MathText } from './MathText';
 import { QuestionEditorCard } from './QuestionEditorCard';
 
 interface AdminPageProps {
   userEmail?: string | null;
+  isAdmin?: boolean;
+  isSuperAdmin?: boolean;
   onBackHome: () => void;
   onExamCreated: () => void;
 }
@@ -78,11 +89,15 @@ function getJsonErrorDetails(raw: string, err: unknown): string {
 
 export const AdminPage: React.FC<AdminPageProps> = ({
   userEmail,
+  isAdmin = false,
+  isSuperAdmin = false,
   onBackHome,
   onExamCreated,
 }) => {
   const isEmailAdmin =
-    Boolean(userEmail) && ADMIN_EMAILS.includes(userEmail!.trim().toLowerCase());
+    isAdmin ||
+    isSuperAdmin ||
+    (Boolean(userEmail) && ADMIN_EMAILS.includes(userEmail!.trim().toLowerCase()));
 
   const [unlocked, setUnlocked] = useState<boolean>(() => {
     if (isEmailAdmin) return true;
@@ -98,8 +113,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   }, [isEmailAdmin]);
 
-  // Tabs: 'repo' (Kho đề) | 'editor' (Trình soạn thảo)
-  const [activeTab, setActiveTab] = useState<'repo' | 'editor'>('repo');
+  // Tabs: 'repo' (Kho đề) | 'editor' (Trình soạn thảo) | 'admins' (Super Admin)
+  const [activeTab, setActiveTab] = useState<'repo' | 'editor' | 'admins'>('repo');
+
+  // Super Admin state
+  const [adminList, setAdminList] = useState<AppAdminRecord[]>([]);
+  const [loadingAdmins, setLoadingAdmins] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [adminMsg, setAdminMsg] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   // Repo state
   const [repoExams, setRepoExams] = useState<Exam[]>([]);
@@ -136,11 +160,52 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setLoadingRepo(false);
   }, []);
 
+  const loadAdmins = useCallback(async () => {
+    if (!isSuperAdmin) return;
+    setLoadingAdmins(true);
+    const res = await fetchAppAdmins();
+    setAdminList(res.admins);
+    if (res.errorMessage) {
+      setAdminMsg({ type: 'error', text: res.errorMessage });
+    }
+    setLoadingAdmins(false);
+  }, [isSuperAdmin]);
+
   useEffect(() => {
     if (unlocked) {
       loadRepo();
+      if (isSuperAdmin) {
+        loadAdmins();
+      }
     }
-  }, [unlocked, loadRepo]);
+  }, [unlocked, isSuperAdmin, loadRepo, loadAdmins]);
+
+  const handleAddAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminMsg(null);
+    const res = await addAppAdmin(newAdminEmail, userEmail);
+    if (res.ok) {
+      setAdminMsg({
+        type: 'success',
+        text: `Đã cấp quyền Quản trị viên cho ${newAdminEmail.trim().toLowerCase()}.`,
+      });
+      setNewAdminEmail('');
+      await loadAdmins();
+    } else {
+      setAdminMsg({ type: 'error', text: res.errorMessage ?? 'Không thể thêm QTV.' });
+    }
+  };
+
+  const handleRemoveAdmin = async (email: string) => {
+    setAdminMsg(null);
+    const res = await removeAppAdmin(email);
+    if (res.ok) {
+      setAdminMsg({ type: 'success', text: `Đã gỡ quyền Quản trị viên của ${email}.` });
+      await loadAdmins();
+    } else {
+      setAdminMsg({ type: 'error', text: res.errorMessage ?? 'Không thể gỡ quyền.' });
+    }
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -403,6 +468,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <Edit3 className="w-3.5 h-3.5" />
                 {editingId ? 'Sửa đề' : 'Tạo đề mới'}
               </button>
+              {isSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('admins')}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition-all ${
+                    activeTab === 'admins'
+                      ? 'bg-white dark:bg-zinc-900 text-red-700 dark:text-red-400 shadow-xs'
+                      : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Quản lý QTV
+                </button>
+              )}
             </div>
 
             <button
@@ -416,7 +495,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         </div>
 
         {/* Mobile Tabs */}
-        <div className="sm:hidden grid grid-cols-2 border-t border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+        <div
+          className={`sm:hidden grid border-t border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 ${
+            isSuperAdmin ? 'grid-cols-3' : 'grid-cols-2'
+          }`}
+        >
           <button
             type="button"
             onClick={() => setActiveTab('repo')}
@@ -439,6 +522,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           >
             {editingId ? 'Sửa đề' : 'Tạo đề mới'}
           </button>
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('admins')}
+              className={`py-2.5 text-xs font-semibold border-b-2 ${
+                activeTab === 'admins'
+                  ? 'border-red-700 text-red-700 dark:text-red-400'
+                  : 'border-transparent text-slate-500'
+              }`}
+            >
+              Quản lý QTV
+            </button>
+          )}
         </div>
       </header>
 
@@ -844,6 +940,133 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 </button>
               </div>
             </section>
+          </div>
+        )}
+
+        {/* TAB 3: SUPER ADMIN MANAGEMENT */}
+        {activeTab === 'admins' && isSuperAdmin && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100">
+                Quản lý Quản trị viên (Super Admin)
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                Cấp hoặc gỡ quyền soạn/sửa đề thi cho Gmail cộng tác viên trên bảng{' '}
+                <code>app_admins</code>.
+              </p>
+            </div>
+
+            {/* Add Admin Form */}
+            <form
+              onSubmit={handleAddAdmin}
+              className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-xs space-y-3"
+            >
+              <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                Thêm Quản trị viên mới bằng Gmail
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <input
+                  type="email"
+                  required
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  placeholder="nhapemail@gmail.com"
+                  className="flex-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3.5 py-2 text-sm text-slate-900 dark:text-zinc-100 focus:border-red-700 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-700 hover:bg-red-800 px-4 py-2 text-xs font-semibold text-white transition-colors shrink-0"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  + Thêm QTV
+                </button>
+              </div>
+              {adminMsg && (
+                <div
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium ${
+                    adminMsg.type === 'success'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900 text-red-700 dark:text-red-300'
+                  }`}
+                >
+                  {adminMsg.text}
+                </div>
+              )}
+            </form>
+
+            {/* Current Admins Table */}
+            <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200/80 dark:border-zinc-800">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                  Danh sách QTV hiện tại
+                </span>
+                <button
+                  type="button"
+                  onClick={loadAdmins}
+                  disabled={loadingAdmins}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingAdmins ? 'animate-spin' : ''}`} />
+                  Làm mới
+                </button>
+              </div>
+
+              <div className="divide-y divide-slate-100 dark:divide-zinc-800">
+                {/* Root Super Admin Row */}
+                <div className="px-5 py-3.5 flex items-center justify-between gap-3 bg-red-50/30 dark:bg-red-950/10">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">
+                        {SUPER_ADMIN_EMAIL}
+                      </span>
+                      <span className="rounded-md bg-[#B91C1C] px-2 py-0.5 text-[10px] font-bold text-white">
+                        Super Admin gốc
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
+                      Toàn quyền hệ thống (không thể gỡ)
+                    </p>
+                  </div>
+                </div>
+
+                {adminList
+                  .filter((a) => a.email.toLowerCase() !== SUPER_ADMIN_EMAIL)
+                  .map((admin) => (
+                    <div
+                      key={admin.id ?? admin.email}
+                      className="px-5 py-3.5 flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-slate-800 dark:text-zinc-200 truncate">
+                          {admin.email}
+                        </div>
+                        <div className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
+                          Cấp quyền:{' '}
+                          {admin.created_at
+                            ? new Date(admin.created_at).toLocaleDateString('vi-VN')
+                            : 'Vừa thêm'}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAdmin(admin.email)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-red-200/80 dark:border-red-900/70 bg-red-50/60 dark:bg-red-950/30 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/60 shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Gỡ quyền
+                      </button>
+                    </div>
+                  ))}
+
+                {adminList.filter((a) => a.email.toLowerCase() !== SUPER_ADMIN_EMAIL)
+                  .length === 0 && (
+                  <div className="px-5 py-6 text-center text-xs text-slate-400 dark:text-zinc-500">
+                    Chưa có cộng tác viên nào được cấp quyền QTV.
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </main>

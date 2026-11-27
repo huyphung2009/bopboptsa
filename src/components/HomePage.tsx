@@ -11,15 +11,20 @@ import {
   Trophy,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import type { UserProfile } from '../lib/profileService';
 import type { Exam } from '../types/exam';
 import { AuthModal } from './AuthModal';
 import { LeaderboardModal } from './LeaderboardModal';
+import { RankBadge, XpProgressBar } from './RankBadge';
 
 interface HomePageProps {
   exams: Exam[];
   loading: boolean;
   fromFallback: boolean;
   user: SupabaseUser | null;
+  profile: UserProfile | null;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
   studentName: string;
   isDark: boolean;
   onToggleDark: () => void;
@@ -36,6 +41,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   loading,
   fromFallback,
   user,
+  profile,
+  isAdmin,
+  isSuperAdmin,
   studentName,
   isDark,
   onToggleDark,
@@ -91,29 +99,41 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             <button
               onClick={onOpenAdmin}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors ${
+                isAdmin || isSuperAdmin
+                  ? 'border-red-200 dark:border-red-900/70 bg-red-50/70 dark:bg-red-950/30 text-red-700 dark:text-red-400 hover:bg-red-100/70'
+                  : 'border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+              }`}
             >
-              <Shield className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline">Quản trị</span>
+              <Shield className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">
+                {isSuperAdmin ? 'Super Admin' : 'Quản trị'}
+              </span>
             </button>
 
             {user ? (
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-1.5 pr-2 py-1">
+              <div className="flex items-center gap-2.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-1.5 pr-2 py-1">
                 {userAvatar ? (
                   <img
                     src={userAvatar}
                     alt={userDisplayName}
-                    className="w-6 h-6 rounded-full object-cover border border-slate-200 dark:border-zinc-700"
+                    className="w-7 h-7 rounded-full object-cover border border-slate-200 dark:border-zinc-700 shrink-0"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-red-700 text-white text-[11px] font-bold flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full bg-red-700 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
                     {(userDisplayName[0] || 'U').toUpperCase()}
                   </div>
                 )}
-                <span className="text-xs font-medium text-slate-800 dark:text-zinc-200 max-w-[110px] truncate hidden sm:inline">
-                  {userDisplayName}
-                </span>
+                <div className="hidden md:flex flex-col min-w-[120px] max-w-[180px] gap-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate">
+                      {userDisplayName}
+                    </span>
+                    <RankBadge xp={profile?.xp ?? 0} compact />
+                  </div>
+                  <XpProgressBar xp={profile?.xp ?? 0} showLabel={false} />
+                </div>
                 <button
                   onClick={onSignOut}
                   className="rounded-md p-1 text-slate-400 hover:text-red-700 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"

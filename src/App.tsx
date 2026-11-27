@@ -3,10 +3,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { AdminPage } from './components/AdminPage';
 import { ExamRoom } from './components/ExamRoom';
 import { HomePage } from './components/HomePage';
-import { ResultView } from './components/ResultView';
+import { ResultView, type XpAwardSummary } from './components/ResultView';
 import { fetchExams, getLeaderboard, submitAttempt } from './lib/examService';
+import {
+  awardExamXp,
+  checkAdminRole,
+  fetchOrCreateProfile,
+  type UserProfile,
+} from './lib/profileService';
 import { supabase } from './lib/supabase';
 import type { Exam, ExamAttemptResult, UserAnswers } from './types/exam';
+import { calculateEarnedXp } from './utils/ranks';
 import { gradeExam } from './utils/scoring';
 
 type ViewMode = 'home' | 'exam' | 'result' | 'admin';
@@ -33,9 +40,14 @@ export function App() {
   });
 
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
   const [studentName, setStudentName] = useState('');
   const [activeExam, setActiveExam] = useState<Exam | null>(null);
   const [attemptResult, setAttemptResult] = useState<ExamAttemptResult | null>(null);
+  const [xpAward, setXpAward] = useState<XpAwardSummary | null>(null);
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error'>('saving');
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
@@ -46,30 +58,50 @@ export function App() {
     localStorage.setItem('bopbop-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
+  const syncUserProfileAndRole = useCallback(async (currentUser: User | null) => {
+    if (!currentUser) {
+      setProfile(null);
+      setIsAdmin(false);
+      setIsSuperAdmin(false);
+      return;
+    }
+
+    const displayName = getDisplayNameFromUser(currentUser);
+    if (displayName) setStudentName(displayName);
+    const avatarUrl = (currentUser.user_metadata?.avatar_url as string | undefined) ?? null;
+
+    const [prof, role] = await Promise.all([
+      fetchOrCreateProfile({
+        userId: currentUser.id,
+        fullName: displayName || null,
+        avatarUrl,
+      }),
+      checkAdminRole(currentUser.email),
+    ]);
+
+    setProfile(prof);
+    setIsAdmin(role.isAdmin);
+    setIsSuperAdmin(role.isSuperAdmin);
+  }, []);
+
   // Sync Supabase Auth session
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       const currentUser = data.session?.user ?? null;
       setUser(currentUser);
-      if (currentUser) {
-        const name = getDisplayNameFromUser(currentUser);
-        if (name) setStudentName(name);
-      }
+      void syncUserProfileAndRole(currentUser);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      if (currentUser) {
-        const name = getDisplayNameFromUser(currentUser);
-        if (name) setStudentName(name);
-      }
+      void syncUserProfileAndRole(currentUser);
     });
 
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [syncUserProfileAndRole]);
 
   const loadExams = useCallback(async () => {
     setLoadingExams(true);
@@ -88,12 +120,16 @@ export function App() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setProfile(null);
+    setIsAdmin(false);
+    setIsSuperAdmin(false);
     setStudentName('');
   };
 
   const handleStartExam = (exam: Exam) => {
     setActiveExam(exam);
     setAttemptResult(null);
+    setXpAward(null);
     setView('exam');
   };
 
@@ -103,12 +139,42 @@ export function App() {
       studentName.trim() || getDisplayNameFromUser(user) || 'Thí sinh ẩn danh';
     const result = gradeExam(activeExam, resolvedName, answers, timeSpentSeconds);
 
+    const earnedXp = calculateEarnedXp(result.score100, result.correctCount);
     setAttemptResult(result);
     setSaveStatus('saving');
     setSaveError(undefined);
     setView('result');
 
     const avatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
+
+    if (user) {
+      const xpRes = await awardExamXp({
+        userId: user.id,
+        earnedXp,
+        fullName: resolvedName,
+        avatarUrl,
+      });
+      setXpAward({
+        earnedXp,
+        previousXp: xpRes.previousXp,
+        newXp: xpRes.newXp,
+        isGuest: false,
+      });
+      setProfile((prev) => ({
+        id: user.id,
+        xp: xpRes.newXp,
+        exams_completed: xpRes.examsCompleted,
+        full_name: resolvedName,
+        avatar_url: avatarUrl ?? prev?.avatar_url,
+      }));
+    } else {
+      setXpAward({
+        earnedXp,
+        previousXp: 0,
+        newXp: earnedXp,
+        isGuest: true,
+      });
+    }
 
     const res = await submitAttempt({
       exam_id: result.examId,
@@ -136,6 +202,8 @@ export function App() {
     return (
       <AdminPage
         userEmail={user?.email}
+        isAdmin={isAdmin}
+        isSuperAdmin={isSuperAdmin}
         onBackHome={() => setView('home')}
         onExamCreated={() => {
           loadExams();
@@ -166,6 +234,7 @@ export function App() {
         result={attemptResult}
         saveStatus={saveStatus}
         saveError={saveError}
+        xpAward={xpAward}
         leaderboardRefreshKey={leaderboardRefreshKey}
         onBackHome={() => setView('home')}
         onRetry={() => handleStartExam(activeExam)}
@@ -179,6 +248,9 @@ export function App() {
       loading={loadingExams}
       fromFallback={fromFallback}
       user={user}
+      profile={profile}
+      isAdmin={isAdmin}
+      isSuperAdmin={isSuperAdmin}
       studentName={studentName}
       isDark={isDark}
       onToggleDark={handleToggleDark}
