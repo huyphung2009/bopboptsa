@@ -44,6 +44,7 @@ export function App() {
   const [studentName, setStudentName] = useState('');
   const [activeExam, setActiveExam] = useState<Exam | null>(null);
   const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
+  const [examMode, setExamMode] = useState<'exam' | 'practice'>('exam');
   const [attemptResult, setAttemptResult] = useState<ExamAttemptResult | null>(null);
   const [xpAward, setXpAward] = useState<XpAwardSummary | null>(null);
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error'>('saving');
@@ -124,7 +125,11 @@ export function App() {
     setStudentName('');
   };
 
-  const handleStartExam = (exam: Exam, targetSectionId?: string) => {
+  const handleStartExam = (
+    exam: Exam,
+    targetSectionId?: string,
+    mode: 'exam' | 'practice' = 'exam'
+  ) => {
     if (!user) {
       setGlobalAuthNotice('Vui lòng đăng nhập tài khoản để làm bài và xem lời giải');
       setGlobalAuthOpen(true);
@@ -132,6 +137,7 @@ export function App() {
     }
     setActiveExam(exam);
     setActiveSectionId(targetSectionId);
+    setExamMode(mode);
     setAttemptResult(null);
     setXpAward(null);
     setView('exam');
@@ -248,6 +254,7 @@ export function App() {
         exam={activeExam}
         studentName={resolvedName}
         targetSectionId={activeSectionId}
+        mode={examMode}
         onSubmit={handleSubmitExam}
         onExit={() => setView('home')}
       />
@@ -266,7 +273,7 @@ export function App() {
           xpAward={xpAward}
           leaderboardRefreshKey={leaderboardRefreshKey}
           onBackHome={() => setView('home')}
-          onRetry={() => handleStartExam(activeExam, activeSectionId)}
+          onRetry={() => handleStartExam(activeExam, activeSectionId, examMode)}
           onRequireAuth={(notice) => {
             setGlobalAuthNotice(notice);
             setGlobalAuthOpen(true);

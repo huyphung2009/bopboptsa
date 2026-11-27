@@ -39,7 +39,7 @@ interface HomePageProps {
   profile: UserProfile | null;
   isAdmin: boolean;
   isSuperAdmin: boolean;
-  onStartExam: (exam: Exam, targetSectionId?: string) => void;
+  onStartExam: (exam: Exam, targetSectionId?: string, mode?: 'exam' | 'practice') => void;
   onRefresh: () => void;
   onOpenAdmin: () => void;
   onSignOut: () => void;
@@ -138,12 +138,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     '';
 
   const proceedWithExam = (exam: Exam) => {
-    const sections = resolveExamSections(exam);
-    if (sections.length > 1) {
-      setModeSelectExam(exam);
-    } else {
-      onStartExam(exam);
-    }
+    setModeSelectExam(exam);
   };
 
   const handleEnterExam = (exam: Exam) => {
@@ -944,13 +939,13 @@ export const HomePage: React.FC<HomePageProps> = ({
       <ExamModeModal
         exam={modeSelectExam}
         onClose={() => setModeSelectExam(null)}
-        onStartFullExam={(ex) => {
+        onStartFullExam={(ex, mode) => {
           setModeSelectExam(null);
-          onStartExam(ex);
+          onStartExam(ex, undefined, mode);
         }}
-        onStartSection={(ex, sectionId) => {
+        onStartSection={(ex, sectionId, mode) => {
           setModeSelectExam(null);
-          onStartExam(ex, sectionId);
+          onStartExam(ex, sectionId, mode);
         }}
       />
     </div>

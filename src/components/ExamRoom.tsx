@@ -1,17 +1,23 @@
 import {
   AlertTriangle,
   ArrowRight,
-  Bookmark,
+  BookOpenCheck,
   Calculator,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
   FileText,
+  Flag,
+  HelpCircle,
   LogOut,
   Maximize2,
+  PenLine,
+  RotateCcw,
   Send,
   ShieldAlert,
   ShieldCheck,
+  XCircle,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Exam, UserAnswers, UserAnswerValue } from '../types/exam';
@@ -19,16 +25,18 @@ import {
   isFullScreenMathOrStandalone,
   resolveExamSections,
 } from '../utils/examSections';
-import { formatDuration, isQuestionAnswered } from '../utils/scoring';
+import { formatDuration, gradeQuestion, isQuestionAnswered } from '../utils/scoring';
 import { CalculatorModal } from './CalculatorModal';
 import { CloudBackdrop } from './CloudBackdrop';
 import { MathText } from './MathText';
 import { QuestionRenderer } from './QuestionRenderer';
+import { ScratchpadModal } from './ScratchpadModal';
 
 interface ExamRoomProps {
   exam: Exam;
   studentName: string;
   targetSectionId?: string;
+  mode?: 'exam' | 'practice';
   onSubmit: (
     answers: UserAnswers,
     timeSpentSeconds: number,
@@ -36,6 +44,36 @@ interface ExamRoomProps {
     proctoring?: { violationCount: number; isFlagged: boolean }
   ) => void;
   onExit: () => void;
+}
+
+interface SavedExamSnapshot {
+  answers: UserAnswers;
+  flagged: Record<string, boolean>;
+  remainingSeconds: number;
+  elapsedSeconds: number;
+  activeSectionIdx: number;
+  accumulatedSeconds: number;
+  currentIndex: number;
+}
+
+function readSavedSnapshot(key: string): SavedExamSnapshot | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedExamSnapshot>;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      answers: parsed.answers ?? {},
+      flagged: parsed.flagged ?? {},
+      remainingSeconds: Number(parsed.remainingSeconds ?? 0),
+      elapsedSeconds: Number(parsed.elapsedSeconds ?? 0),
+      activeSectionIdx: Number(parsed.activeSectionIdx ?? 0),
+      accumulatedSeconds: Number(parsed.accumulatedSeconds ?? 0),
+      currentIndex: Number(parsed.currentIndex ?? 0),
+    };
+  } catch {
+    return null;
+  }
 }
 
 const QUESTION_TYPE_LABEL: Record<string, string> = {
@@ -49,9 +87,25 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   exam,
   studentName,
   targetSectionId,
+  mode = 'exam',
   onSubmit,
   onExit,
 }) => {
+  const isPractice = mode === 'practice';
+  const autosaveKey = `parabol_autosave_${exam.id}_${targetSectionId || 'full'}_${mode}`;
+  const [initialSnapshot] = useState<SavedExamSnapshot | null>(() =>
+    readSavedSnapshot(autosaveKey)
+  );
+  const [restoredNotice, setRestoredNotice] = useState<boolean>(() =>
+    Boolean(initialSnapshot)
+  );
+
+  useEffect(() => {
+    if (!restoredNotice) return;
+    const t = window.setTimeout(() => setRestoredNotice(false), 3500);
+    return () => window.clearTimeout(t);
+  }, [restoredNotice]);
+
   const activeSections = useMemo(() => {
     const all = resolveExamSections(exam);
     if (targetSectionId) {
@@ -61,7 +115,10 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
     return all;
   }, [exam, targetSectionId]);
 
-  const [activeSectionIdx, setActiveSectionIdx] = useState(0);
+  const [activeSectionIdx, setActiveSectionIdx] = useState(() => {
+    const idx = initialSnapshot?.activeSectionIdx ?? 0;
+    return idx >= 0 && idx < activeSections.length ? idx : 0;
+  });
   const currentSection = activeSections[activeSectionIdx];
   const isLastSection = activeSectionIdx >= activeSections.length - 1;
   const sectionQuestions = useMemo(
@@ -73,19 +130,38 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
     (currentSection?.duration_minutes ?? exam.duration_minutes) * 60
   );
 
-  const [remainingSeconds, setRemainingSeconds] = useState(sectionTotalSeconds);
-  const [accumulatedSeconds, setAccumulatedSeconds] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState(() =>
+    initialSnapshot && initialSnapshot.remainingSeconds > 0
+      ? initialSnapshot.remainingSeconds
+      : sectionTotalSeconds
+  );
+  const [elapsedSeconds, setElapsedSeconds] = useState(
+    () => initialSnapshot?.elapsedSeconds ?? 0
+  );
+  const [accumulatedSeconds, setAccumulatedSeconds] = useState(
+    () => initialSnapshot?.accumulatedSeconds ?? 0
+  );
   const [intermissionSeconds, setIntermissionSeconds] = useState<number | null>(null);
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<UserAnswers>({});
-  const [flagged, setFlagged] = useState<Record<string, boolean>>({});
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const idx = initialSnapshot?.currentIndex ?? 0;
+    return idx >= 0 && idx < sectionQuestions.length ? idx : 0;
+  });
+  const [answers, setAnswers] = useState<UserAnswers>(
+    () => initialSnapshot?.answers ?? {}
+  );
+  const [flagged, setFlagged] = useState<Record<string, boolean>>(
+    () => initialSnapshot?.flagged ?? {}
+  );
+  const [navFilter, setNavFilter] = useState<'all' | 'unanswered' | 'flagged'>('all');
+  const [practiceChecked, setPracticeChecked] = useState<Record<string, boolean>>({});
   const [showCalc, setShowCalc] = useState(false);
+  const [showScratchpad, setShowScratchpad] = useState(false);
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Anti-Cheat Proctoring state
-  const antiCheatEnabled = exam.anti_cheat !== false;
+  // Anti-Cheat Proctoring state (disabled in Practice Mode)
+  const antiCheatEnabled = exam.anti_cheat !== false && !isPractice;
   const [violationCount, setViolationCount] = useState(0);
   const [violationModal, setViolationModal] = useState<{
     reason: string;
@@ -139,15 +215,22 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   const completeCurrentSection = useCallback(
     (timedOut = false) => {
       if (isSubmitting) return;
-      const spentInSection = timedOut
-        ? sectionTotalSeconds
-        : Math.max(1, sectionTotalSeconds - remainingSeconds);
+      const spentInSection = isPractice
+        ? Math.max(1, elapsedSeconds)
+        : timedOut
+          ? sectionTotalSeconds
+          : Math.max(1, sectionTotalSeconds - remainingSeconds);
       const nextTotalSpent = accumulatedSeconds + spentInSection;
       setAccumulatedSeconds(nextTotalSpent);
       setConfirmSubmitOpen(false);
 
       if (isLastSection) {
         setIsSubmitting(true);
+        try {
+          localStorage.removeItem(autosaveKey);
+        } catch {
+          // ignore storage errors
+        }
         if (document.fullscreenElement) {
           document.exitFullscreen?.().catch(() => {});
         }
@@ -161,38 +244,79 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
     },
     [
       isSubmitting,
+      isPractice,
+      elapsedSeconds,
       sectionTotalSeconds,
       remainingSeconds,
       accumulatedSeconds,
       isLastSection,
+      autosaveKey,
       onSubmit,
       answers,
       targetSectionId,
     ]
   );
 
-  // Section countdown timer
+  // Auto-save to localStorage
+  useEffect(() => {
+    if (isSubmitting) return;
+    try {
+      const payload: SavedExamSnapshot = {
+        answers,
+        flagged,
+        remainingSeconds,
+        elapsedSeconds,
+        activeSectionIdx,
+        accumulatedSeconds,
+        currentIndex,
+      };
+      localStorage.setItem(autosaveKey, JSON.stringify(payload));
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [
+    autosaveKey,
+    answers,
+    flagged,
+    remainingSeconds,
+    elapsedSeconds,
+    activeSectionIdx,
+    accumulatedSeconds,
+    currentIndex,
+    isSubmitting,
+  ]);
+
+  // Section timer: countdown in Exam Mode, count-up in Practice Mode
   useEffect(() => {
     if (intermissionSeconds !== null || isSubmitting) return;
     const timer = window.setInterval(() => {
-      setRemainingSeconds((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
+      if (isPractice) {
+        setElapsedSeconds((prev) => prev + 1);
+      } else {
+        setRemainingSeconds((prev) => {
+          if (prev <= 1) {
+            window.clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [intermissionSeconds, isSubmitting, activeSectionIdx]);
+  }, [intermissionSeconds, isSubmitting, activeSectionIdx, isPractice]);
 
-  // Auto-submit / advance when section timer hits 0
+  // Auto-submit / advance when section timer hits 0 (Exam Mode only)
   useEffect(() => {
-    if (remainingSeconds === 0 && intermissionSeconds === null && !isSubmitting) {
+    if (
+      !isPractice &&
+      remainingSeconds === 0 &&
+      intermissionSeconds === null &&
+      !isSubmitting
+    ) {
       const t = window.setTimeout(() => completeCurrentSection(true), 0);
       return () => window.clearTimeout(t);
     }
-  }, [remainingSeconds, intermissionSeconds, isSubmitting, completeCurrentSection]);
+  }, [isPractice, remainingSeconds, intermissionSeconds, isSubmitting, completeCurrentSection]);
 
   // 5-second intermission countdown
   useEffect(() => {
@@ -282,6 +406,11 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
       if (nextCount > 3) {
         setViolationModal(null);
         setIsSubmitting(true);
+        try {
+          localStorage.removeItem(autosaveKey);
+        } catch {
+          // ignore
+        }
         const spent = Math.max(1, sectionTotalSeconds - remainingRef.current);
         const totalSpent = accumulatedRef.current + spent;
         if (document.fullscreenElement) {
@@ -404,6 +533,9 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
   const handleAnswerChange = (qId: string, val: UserAnswerValue) => {
     setAnswers((prev) => ({ ...prev, [qId]: val }));
+    if (isPractice && currentQuestion?.type === 'single_choice') {
+      setPracticeChecked((prev) => ({ ...prev, [qId]: true }));
+    }
   };
 
   const toggleFlag = (qId: string) => {
@@ -490,6 +622,19 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {restoredNotice && (
+            <span className="hidden lg:inline-flex items-center gap-1 rounded-full border border-teal-300/60 dark:border-teal-800/70 bg-teal-50/90 dark:bg-teal-950/40 px-2.5 py-1 text-[11px] font-semibold text-teal-700 dark:text-teal-300">
+              Đã khôi phục bài làm
+            </span>
+          )}
+
+          {isPractice && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-teal-300/60 dark:border-teal-800/70 bg-teal-50/80 dark:bg-teal-950/35 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">
+              <BookOpenCheck className="w-3.5 h-3.5" />
+              Luyện tập
+            </span>
+          )}
+
           {antiCheatEnabled && (
             <div
               className={`hidden md:inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
@@ -511,6 +656,21 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
           )}
 
           <button
+            type="button"
+            onClick={() => setShowScratchpad((v) => !v)}
+            className={`btn btn-sm ${
+              showScratchpad
+                ? 'bg-[#ffeff1] dark:bg-[#dc263e]/25 border border-crimson/40 text-crimson dark:text-[#fbbac3]'
+                : 'btn-pill'
+            }`}
+            title="Mở bảng nháp nhanh"
+          >
+            <PenLine className="w-3.5 h-3.5 text-crimson" />
+            <span className="hidden sm:inline">Nháp</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setShowCalc((v) => !v)}
             className={`btn btn-sm ${
               showCalc
@@ -522,16 +682,23 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
             <span className="hidden sm:inline">Máy tính</span>
           </button>
 
-          <div
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs sm:text-sm font-mono font-semibold ${
-              isTimeLow
-                ? 'border-rose-400 dark:border-rose-700 bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 animate-pulse'
-                : 'border-[var(--line)] bg-white/90 dark:bg-[#241219] text-[#2a161b] dark:text-[#fff2f4]'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5 text-crimson" />
-            {formatDuration(remainingSeconds)}
-          </div>
+          {isPractice ? (
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-teal-300/60 dark:border-teal-800/70 bg-teal-50/80 dark:bg-teal-950/35 px-3 py-1.5 text-xs sm:text-sm font-mono font-semibold text-teal-700 dark:text-teal-300">
+              <Clock className="w-3.5 h-3.5" />
+              {formatDuration(elapsedSeconds)}
+            </div>
+          ) : (
+            <div
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs sm:text-sm font-mono font-semibold ${
+                isTimeLow
+                  ? 'border-rose-400 dark:border-rose-700 bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 animate-pulse'
+                  : 'border-[var(--line)] bg-white/90 dark:bg-[#241219] text-[#2a161b] dark:text-[#fff2f4]'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 text-crimson" />
+              {formatDuration(remainingSeconds)}
+            </div>
+          )}
 
           <button
             onClick={() => setConfirmSubmitOpen(true)}
@@ -617,18 +784,18 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                     onClick={() => toggleFlag(currentQuestion.id)}
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
                       flagged[currentQuestion.id]
-                        ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300'
-                        : 'bg-white/90 dark:bg-[#241219] border-[var(--line)] text-[#5e4249] dark:text-[#ebc9cf] hover:border-crimson/50'
+                        ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-300'
+                        : 'bg-white/90 dark:bg-[#241219] border-[var(--line)] text-[#5e4249] dark:text-[#ebc9cf] hover:border-amber-400'
                     }`}
                   >
-                    <Bookmark
+                    <Flag
                       className={`w-3.5 h-3.5 ${
                         flagged[currentQuestion.id]
                           ? 'fill-amber-500 text-amber-500'
                           : ''
                       }`}
                     />
-                    {flagged[currentQuestion.id] ? 'Đã đánh dấu' : 'Xem lại'}
+                    {flagged[currentQuestion.id] ? 'Đã gắn cờ' : 'Gắn cờ'}
                   </button>
                 </div>
 
@@ -636,9 +803,85 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
                   <QuestionRenderer
                     question={currentQuestion}
                     answer={answers[currentQuestion.id]}
+                    readOnly={isPractice && Boolean(practiceChecked[currentQuestion.id])}
                     onChange={(val) => handleAnswerChange(currentQuestion.id, val)}
                   />
                 </div>
+
+                {/* Practice Mode Instant Feedback & Explanation */}
+                {isPractice && (
+                  <div className="mt-5 pt-4 border-t border-[var(--line)] space-y-3">
+                    {!practiceChecked[currentQuestion.id] ? (
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPracticeChecked((prev) => ({
+                              ...prev,
+                              [currentQuestion.id]: true,
+                            }))
+                          }
+                          className="btn btn-crimson btn-sm"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Kiểm tra đáp án &amp; Xem lời giải
+                        </button>
+                      </div>
+                    ) : (
+                      (() => {
+                        const qRes = gradeQuestion(
+                          currentQuestion,
+                          answers[currentQuestion.id]
+                        );
+                        return (
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              {qRes.isFullCorrect ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  Chính xác ({qRes.earnedPoints}/{qRes.maxPoints} điểm)
+                                </span>
+                              ) : qRes.isPartialCorrect ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                                  <HelpCircle className="w-4 h-4" />
+                                  Đúng một phần ({qRes.earnedPoints}/{qRes.maxPoints} điểm)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 px-3 py-1 text-xs font-semibold text-rose-700 dark:text-rose-300">
+                                  <XCircle className="w-4 h-4" />
+                                  Chưa chính xác (0/{qRes.maxPoints} điểm)
+                                </span>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPracticeChecked((prev) => ({
+                                    ...prev,
+                                    [currentQuestion.id]: false,
+                                  }))
+                                }
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#876870] hover:text-crimson cursor-pointer"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                Làm lại câu này
+                              </button>
+                            </div>
+
+                            {currentQuestion.explanation && (
+                              <div className="rounded-2xl border border-[#dc263e]/20 bg-[#fff5f6]/85 dark:bg-[#241219]/80 p-4 text-sm text-[#2a161b] dark:text-[#fff2f4] leading-relaxed">
+                                <div className="text-[11px] font-semibold uppercase tracking-wider text-crimson dark:text-[#ef6c7e] mb-1">
+                                  Lời giải chi tiết
+                                </div>
+                                <MathText text={currentQuestion.explanation} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -679,7 +922,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
 
         {/* Question Navigator Sidebar */}
         <aside className="shrink-0 lg:w-64 border-t lg:border-t-0 lg:border-l border-[var(--line)] bg-white/90 dark:bg-[#190c11]/90 backdrop-blur-md p-4 overflow-y-auto custom-scrollbar">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2.5">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#876870] dark:text-[#b88c95]">
               Câu hỏi phần này
             </h3>
@@ -688,35 +931,87 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-6 sm:grid-cols-10 lg:grid-cols-4 gap-1.5">
-            {sectionQuestions.map((q, idx) => {
-              const isCurrent = idx === currentIndex;
-              const isDone = isQuestionAnswered(q, answers[q.id]);
-              const isFlag = !!flagged[q.id];
-
-              return (
-                <button
-                  key={q.id}
-                  type="button"
-                  onClick={() => setCurrentIndex(idx)}
-                  className={`relative h-9 rounded-xl border text-xs font-mono font-semibold transition-all cursor-pointer ${
-                    isCurrent
-                      ? 'border-crimson bg-[#ffeff1] dark:bg-[#dc263e]/30 text-crimson dark:text-white shadow-xs'
-                      : isDone
-                        ? 'border-[#fbbac3] dark:border-[#ef6c7e]/40 bg-[#fff5f6] dark:bg-[#241219] text-[#2a161b] dark:text-[#fff2f4]'
-                        : 'border-[var(--line)] bg-white dark:bg-[#1b0d13] text-[#876870] dark:text-[#b88c95] hover:border-crimson/50'
-                  }`}
-                >
-                  {idx + 1}
-                  {isFlag ? (
-                    <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  ) : isDone ? (
-                    <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-teal-500" />
-                  ) : null}
-                </button>
-              );
-            })}
+          {/* Quick Filter Tabs */}
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#fff5f6] dark:bg-[#241219] p-1 mb-3 border border-[var(--line)]">
+            {(
+              [
+                { id: 'all', label: 'Tất cả' },
+                { id: 'unanswered', label: 'Chưa làm' },
+                { id: 'flagged', label: 'Gắn cờ' },
+              ] as const
+            ).map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setNavFilter(f.id)}
+                className={`rounded-lg py-1 text-[10px] font-semibold transition-all cursor-pointer ${
+                  navFilter === f.id
+                    ? 'bg-white dark:bg-[#1b0d13] text-crimson dark:text-[#fff2f4] shadow-xs'
+                    : 'text-[#876870] dark:text-[#c49ba3] hover:text-[#2a161b]'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
+
+          {(() => {
+            const visibleItems = sectionQuestions
+              .map((q, idx) => ({ q, idx }))
+              .filter(({ q }) => {
+                if (navFilter === 'unanswered') {
+                  return !isQuestionAnswered(q, answers[q.id]);
+                }
+                if (navFilter === 'flagged') {
+                  return Boolean(flagged[q.id]);
+                }
+                return true;
+              });
+
+            if (visibleItems.length === 0) {
+              return (
+                <div className="rounded-xl border border-dashed border-[var(--line)] py-6 px-3 text-center text-[11px] text-[#876870] dark:text-[#b88c95]">
+                  {navFilter === 'flagged'
+                    ? 'Chưa có câu nào được gắn cờ.'
+                    : 'Bạn đã trả lời tất cả câu hỏi!'}
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-6 sm:grid-cols-10 lg:grid-cols-4 gap-1.5">
+                {visibleItems.map(({ q, idx }) => {
+                  const isCurrent = idx === currentIndex;
+                  const isDone = isQuestionAnswered(q, answers[q.id]);
+                  const isFlag = !!flagged[q.id];
+
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      onClick={() => setCurrentIndex(idx)}
+                      className={`relative h-9 rounded-xl border text-xs font-mono font-semibold transition-all cursor-pointer ${
+                        isCurrent
+                          ? 'border-crimson bg-[#ffeff1] dark:bg-[#dc263e]/30 text-crimson dark:text-white shadow-xs'
+                          : isFlag
+                            ? 'border-amber-400 dark:border-amber-600 bg-amber-50/80 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200'
+                            : isDone
+                              ? 'border-[#fbbac3] dark:border-[#ef6c7e]/40 bg-[#fff5f6] dark:bg-[#241219] text-[#2a161b] dark:text-[#fff2f4]'
+                              : 'border-[var(--line)] bg-white dark:bg-[#1b0d13] text-[#876870] dark:text-[#b88c95] hover:border-crimson/50'
+                      }`}
+                    >
+                      {idx + 1}
+                      {isFlag ? (
+                        <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      ) : isDone ? (
+                        <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-teal-500" />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           <div className="mt-4 pt-3 border-t border-[var(--line)] space-y-1.5 text-[11px] text-[#876870] dark:text-[#b88c95]">
             <div className="flex items-center gap-2">
@@ -735,8 +1030,12 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
         </aside>
       </div>
 
-      {/* Calculator */}
+      {/* Calculator & Scratchpad */}
       <CalculatorModal isOpen={showCalc} onClose={() => setShowCalc(false)} />
+      <ScratchpadModal
+        isOpen={showScratchpad}
+        onClose={() => setShowScratchpad(false)}
+      />
 
       {/* Submit Section / Exam Confirmation Modal */}
       {confirmSubmitOpen && (
