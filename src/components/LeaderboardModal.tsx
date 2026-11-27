@@ -202,23 +202,49 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     }
   }, [isOpen, activeTab, selectedExamId, refreshKey, loadXpData, loadExamData]);
 
-  const validAttempts = useMemo(
-    () =>
-      attempts.filter(
-        (a) => !a.is_flagged && (a.violation_count ?? 0) <= 3
-      ),
-    [attempts]
-  );
+  const rankedExamAttempts = useMemo(() => {
+    const clean = attempts.filter(
+      (a) =>
+        !a.is_flagged &&
+        !a.is_cheating &&
+        a.status !== 'violated' &&
+        (a.violation_count ?? 0) <= 3
+    );
 
-  const sortedExamAttempts = useMemo(
-    () => [
-      ...validAttempts,
-      ...attempts.filter(
-        (a) => a.is_flagged || (a.violation_count ?? 0) > 3
-      ),
-    ],
-    [validAttempts, attempts]
-  );
+    const bestByParticipant = new Map<string, AttemptRecord>();
+    for (const a of clean) {
+      const key = a.user_id
+        ? `user:${a.user_id}`
+        : `guest:${(a.student_name || 'Thí sinh ẩn danh').trim().toLowerCase()}`;
+
+      const existing = bestByParticipant.get(key);
+      if (!existing) {
+        bestByParticipant.set(key, a);
+        continue;
+      }
+
+      const candidateScore = Number(a.score ?? 0);
+      const existingScore = Number(existing.score ?? 0);
+      const candidateTime = a.time_spent_seconds ?? Number.MAX_SAFE_INTEGER;
+      const existingTime = existing.time_spent_seconds ?? Number.MAX_SAFE_INTEGER;
+
+      if (
+        candidateScore > existingScore ||
+        (candidateScore === existingScore && candidateTime < existingTime)
+      ) {
+        bestByParticipant.set(key, a);
+      }
+    }
+
+    return Array.from(bestByParticipant.values()).sort((a, b) => {
+      const scoreDiff = Number(b.score ?? 0) - Number(a.score ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return (
+        (a.time_spent_seconds ?? Number.MAX_SAFE_INTEGER) -
+        (b.time_spent_seconds ?? Number.MAX_SAFE_INTEGER)
+      );
+    });
+  }, [attempts]);
 
   if (!isOpen) return null;
 
@@ -235,14 +261,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     isCurrentUser: Boolean(currentUserId && p.id === currentUserId),
   }));
 
-  const examTop3: PodiumEntry[] = validAttempts.slice(0, 3).map((a, i) => ({
+  const examTop3: PodiumEntry[] = rankedExamAttempts.slice(0, 3).map((a, i) => ({
     rank: (i + 1) as 1 | 2 | 3,
-    name: a.student_name,
+    name: a.student_name || 'Thí sinh ẩn danh',
     avatarUrl: a.avatar_url,
-    xp: a.user_id && profilesMap[a.user_id] ? profilesMap[a.user_id].xp : 0,
-    primaryMetric: `${Number(a.score).toFixed(2)} đ`,
+    xp: a.user_id && profilesMap[a.user_id] ? profilesMap[a.user_id].xp ?? 0 : 0,
+    primaryMetric: `${Number(a.score ?? 0).toFixed(2)} đ`,
     secondaryMetric: `${a.correct_count ?? '-'}/${a.total_questions ?? '-'} · ${
-      a.time_spent_seconds !== undefined
+      a.time_spent_seconds !== undefined && a.time_spent_seconds !== null
         ? formatDuration(a.time_spent_seconds)
         : '--:--'
     }`,
@@ -255,7 +281,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     ? xpProfiles.findIndex((p) => p.id === currentUserId)
     : -1;
   const myExamIndex = currentUserId
-    ? attempts.findIndex((a) => a.user_id === currentUserId)
+    ? rankedExamAttempts.findIndex((a) => a.user_id === currentUserId)
     : -1;
 
   return (
@@ -445,7 +471,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 </div>
               )}
 
-              {activeTab === 'exam' && sortedExamAttempts.length > 3 && (
+              {activeTab === 'exam' && rankedExamAttempts.length > 3 && (
                 <div className="rounded-2xl border border-[var(--line)] overflow-hidden">
                   <table className="w-full text-left border-collapse">
                     <thead>
@@ -458,7 +484,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--line)] text-sm">
-                      {sortedExamAttempts.slice(3).map((item, idx) => {
+                      {rankedExamAttempts.slice(3).map((item, idx) => {
                         const rank = idx + 4;
                         const profile = item.user_id
                           ? profilesMap[item.user_id]
@@ -495,13 +521,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                                 )}
                                 <div className="flex flex-wrap items-center gap-2 min-w-0">
                                   <span className="text-[#2a161b] dark:text-[#fff2f4] truncate max-w-[150px]">
-                                    {item.student_name}
+                                    {item.student_name || 'Thí sinh ẩn danh'}
                                   </span>
-                                  {(item.is_flagged || (item.violation_count ?? 0) > 3) && (
-                                    <span className="rounded-full bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 px-2 py-0.5 text-[10px] font-bold text-rose-700 dark:text-rose-400">
-                                      Vi phạm quy chế
-                                    </span>
-                                  )}
                                   {profile ? (
                                     <RankBadge xp={profile.xp} compact />
                                   ) : (
@@ -561,7 +582,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               </span>
             </span>
             <span className="font-mono font-bold text-[#2a161b] dark:text-white">
-              {Number(attempts[myExamIndex].score).toFixed(2)} đ
+              {Number(rankedExamAttempts[myExamIndex]?.score ?? 0).toFixed(2)} đ
             </span>
           </div>
         )}

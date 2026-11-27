@@ -136,6 +136,8 @@ export interface AttemptRecord {
   time_spent_seconds: number;
   violation_count?: number;
   is_flagged?: boolean;
+  is_cheating?: boolean;
+  status?: string;
   section_scores?: SectionResultSummary[] | null;
   user_answers?: UserAnswers | null;
   user_id?: string | null;
