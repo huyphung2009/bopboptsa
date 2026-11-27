@@ -10,9 +10,9 @@ interface MascotCompanionProps {
 }
 
 const HOME_DIALOGUES = [
-  'Tư duy thật chưa? Tư duy rồi thì vào làm 1 đề TSA xem nào! 🧠',
-  'IT-E10 Bách khoa thẳng tiến thôi bro, đừng lướt nữa, cày đề đi! 🔥',
-  'Định đỗ IT-E10 bằng niềm tin à? Click chọn đề thi ngay đi!',
+  'Tư duy thật chưa? Vào làm 1 đề TSA, HSA hay THPTQG khởi động đi! 🧠',
+  'Mục tiêu NV1 thẳng tiến thôi bro, đừng lướt nữa, chọn đề cày ngay đi! 🔥',
+  'Định đỗ đại học bằng niềm tin à? Chọn 1 đề TSA, V-ACT hoặc HSA làm ngay đi!',
   'Lại trốn làm đề đúng không? Tớ nhìn thấy hết đấy nhé 👀',
 ];
 

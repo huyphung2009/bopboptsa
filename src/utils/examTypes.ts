@@ -103,8 +103,12 @@ export function getSubFiltersForExamType(
         { value: 'Tiếng Anh', label: 'Tiếng Anh' },
         { value: 'Ngữ văn', label: 'Ngữ văn' },
       ];
-    case 'TSA':
     case 'ALL':
+      return [
+        { value: 'ALL', label: 'Tất cả' },
+        { value: 'Tổng hợp', label: 'Đề tổng hợp' },
+      ];
+    case 'TSA':
     default:
       return [
         { value: 'ALL', label: 'Tất cả' },

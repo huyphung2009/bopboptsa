@@ -58,16 +58,6 @@ interface HomePageProps {
   leaderboardRefreshKey: number;
 }
 
-type SectionFilter = 'ALL' | 'Tổng hợp' | 'Tư duy Toán học' | 'Tư duy Đọc hiểu' | 'Tư duy Khoa học';
-
-const TSA_SECTION_FILTERS: { value: SectionFilter; label: string }[] = [
-  { value: 'ALL', label: 'Tất cả' },
-  { value: 'Tổng hợp', label: 'Đề tổng hợp' },
-  { value: 'Tư duy Toán học', label: 'Tư duy Toán học' },
-  { value: 'Tư duy Đọc hiểu', label: 'Tư duy Đọc hiểu' },
-  { value: 'Tư duy Khoa học', label: 'Tư duy Khoa học' },
-];
-
 export const HomePage: React.FC<HomePageProps> = ({
   exams,
   loading,
@@ -472,10 +462,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                 Lộ trình Cấp bậc
               </button>
             </div>
-
-            <p className="mt-6 text-[11.5px] tracking-wide text-[#876870]/90 dark:text-[#b88c95]/85">
-              Tư duy Toán học &nbsp;·&nbsp; Tư duy Đọc hiểu &nbsp;·&nbsp; Tư duy Khoa học &nbsp;·&nbsp; TSA HUST
-            </p>
           </div>
         </div>
       </section>
@@ -794,7 +780,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#dc263e]/20 bg-[#ffeff1] text-crimson">
                     <Check className="w-3.5 h-3.5" />
                   </span>
-                  Chấm điểm thang 100 kèm lời giải chi tiết sau khi nộp bài
+                  Chấm điểm tự động chuẩn từng kỳ thi kèm lời giải chi tiết ngay sau khi nộp bài
                 </li>
               </ul>
 
@@ -898,21 +884,27 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </span>
               </div>
               <p className="mt-3.5 max-w-[320px] text-[13px] leading-relaxed text-[#876870] dark:text-[#b88c95]">
-                Nền tảng luyện thi Đánh giá tư duy TSA trực tuyến — Đại học Bách khoa Hà Nội.
+                Nền tảng luyện thi trực tuyến đa kỳ thi — TSA · HSA · V-ACT · THPT Quốc gia.
               </p>
             </div>
 
             <div>
               <h4 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#876870] dark:text-[#b88c95]">
-                Cấu trúc bài thi TSA
+                Các kỳ thi hỗ trợ
               </h4>
               <ul className="mt-3.5 space-y-2 text-[13px] text-[#5e4249] dark:text-[#ebc9cf]">
-                {TSA_SECTION_FILTERS.filter((f) => f.value !== 'ALL').map((item) => (
+                {[
+                  { value: 'TSA' as ExamTabFilter, label: 'Đánh giá tư duy (TSA)' },
+                  { value: 'HSA' as ExamTabFilter, label: 'Đánh giá năng lực HN (HSA)' },
+                  { value: 'VACT' as ExamTabFilter, label: 'Đánh giá năng lực HCM (V-ACT)' },
+                  { value: 'THPTQG' as ExamTabFilter, label: 'Tốt nghiệp THPT (THPTQG)' },
+                ].map((item) => (
                   <li key={item.value}>
                     <button
                       type="button"
                       onClick={() => {
-                        setSelectedSection(item.value);
+                        setSelectedExamType(item.value);
+                        setSelectedSection('ALL');
                         scrollToSection('exam-library');
                       }}
                       className="transition hover:text-crimson cursor-pointer"
