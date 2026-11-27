@@ -1,6 +1,7 @@
 import { AlertCircle, Lock, LogIn, Mail, User, UserPlus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { LegalModal, type LegalTab } from './LegalModal';
 import { Logo } from './Logo';
 
 interface AuthModalProps {
@@ -23,6 +24,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [legalTab, setLegalTab] = useState<LegalTab | null>(null);
 
   if (!isOpen) return null;
 
@@ -45,6 +48,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
+
+    if (tab === 'register' && !agreedToTerms) {
+      setError('Vui lòng đồng ý với Điều khoản sử dụng và Chính sách bảo mật để tạo tài khoản.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -150,6 +159,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             Đăng nhập bằng Google
           </button>
 
+          <p className="text-[11px] leading-relaxed text-center text-[#876870] dark:text-[#b88c95] -mt-2">
+            Bằng việc tiếp tục với Google, bạn đồng ý với{' '}
+            <button
+              type="button"
+              onClick={() => setLegalTab('terms')}
+              className="text-crimson font-medium hover:underline cursor-pointer"
+            >
+              Điều khoản sử dụng
+            </button>{' '}
+            và{' '}
+            <button
+              type="button"
+              onClick={() => setLegalTab('privacy')}
+              className="text-crimson font-medium hover:underline cursor-pointer"
+            >
+              Chính sách bảo mật
+            </button>{' '}
+            của Parabol.
+          </p>
+
           <div className="relative flex items-center">
             <div className="flex-1 border-t border-[var(--line)]" />
             <span className="px-3 text-[11px] font-medium text-[#876870] dark:text-[#b88c95] uppercase">
@@ -246,10 +275,55 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             )}
 
+            {tab === 'register' && (
+              <div className="flex items-start gap-2.5 pt-1">
+                <input
+                  id="agree-terms-checkbox"
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => {
+                    setAgreedToTerms(e.target.checked);
+                    if (e.target.checked && error) {
+                      setError(null);
+                    }
+                  }}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-[var(--line)] accent-crimson cursor-pointer"
+                />
+                <label
+                  htmlFor="agree-terms-checkbox"
+                  className="text-xs leading-relaxed text-[#5c3d46] dark:text-[#d9b8c0] select-none cursor-pointer"
+                >
+                  Tôi đồng ý với{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setLegalTab('terms');
+                    }}
+                    className="text-crimson font-semibold hover:underline cursor-pointer"
+                  >
+                    Điều khoản sử dụng
+                  </button>{' '}
+                  và{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setLegalTab('privacy');
+                    }}
+                    className="text-crimson font-semibold hover:underline cursor-pointer"
+                  >
+                    Chính sách bảo mật
+                  </button>{' '}
+                  của Parabol.
+                </label>
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
-              className="btn btn-crimson w-full !py-2.5"
+              disabled={loading || (tab === 'register' && !agreedToTerms)}
+              className="btn btn-crimson w-full !py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading
                 ? 'Đang xử lý...'
@@ -260,6 +334,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </form>
         </div>
       </div>
+
+      <LegalModal
+        isOpen={legalTab !== null}
+        initialTab={legalTab ?? 'terms'}
+        onClose={() => setLegalTab(null)}
+      />
     </div>
   );
 };
