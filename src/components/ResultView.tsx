@@ -11,7 +11,11 @@ import {
   Trophy,
   XCircle,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  fetchTopCommunitySolutionsMap,
+  type BountySolutionRecord,
+} from '../lib/bountyService';
 import type { Exam, ExamAttemptResult } from '../types/exam';
 import { getRankByXp } from '../utils/ranks';
 import { formatDuration } from '../utils/scoring';
@@ -54,6 +58,21 @@ export const ResultView: React.FC<ResultViewProps> = ({
   onRequireAuth,
 }) => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [topSolutions, setTopSolutions] = useState<
+    Record<string, BountySolutionRecord>
+  >({});
+
+  useEffect(() => {
+    const ids = exam.questions.map((q) => q.id);
+    if (ids.length === 0) return;
+    let cancelled = false;
+    fetchTopCommunitySolutionsMap(ids).then((map) => {
+      if (!cancelled) setTopSolutions(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [exam.questions]);
 
   const oldRank = xpAward ? getRankByXp(xpAward.previousXp) : null;
   const newRank = xpAward ? getRankByXp(xpAward.newXp) : null;
@@ -352,6 +371,24 @@ export const ResultView: React.FC<ResultViewProps> = ({
                           Lời giải
                         </div>
                         <MathText text={q.explanation} />
+                      </div>
+                    )}
+
+                    {topSolutions[q.id] && (
+                      <div className="rounded-2xl border border-amber-300/80 bg-amber-50/70 p-4 text-sm text-[#2a161b] leading-relaxed space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                            <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                            🏆 Lời giải ngắn gọn nhất (Cộng đồng)
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-[#2a161b]">
+                              {topSolutions[q.id].author_name}
+                            </span>
+                            <RankBadge xp={topSolutions[q.id].author_xp} />
+                          </div>
+                        </div>
+                        <MathText text={topSolutions[q.id].content} />
                       </div>
                     )}
                   </article>

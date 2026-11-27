@@ -6,6 +6,7 @@ import {
   Check,
   Clock,
   FileText,
+  Flame,
   Layers,
   LogOut,
   Menu,
@@ -45,6 +46,7 @@ interface HomePageProps {
   onStartExam: (exam: Exam, targetSectionId?: string, mode?: 'exam' | 'practice') => void;
   onRefresh: () => void;
   onOpenAdmin: () => void;
+  onOpenBounty: () => void;
   onSignOut: () => void;
   onSaveTargetGoal: (goal: TargetGoalPayload) => Promise<void>;
   leaderboardRefreshKey: number;
@@ -71,6 +73,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onStartExam,
   onRefresh,
   onOpenAdmin,
+  onOpenBounty,
   onSignOut,
   onSaveTargetGoal,
   leaderboardRefreshKey,
@@ -224,6 +227,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               </button>
               <button
                 type="button"
+                onClick={onOpenBounty}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13.5px] font-medium text-crimson bg-[#fff5f6] hover:bg-[#ffe8ec] transition-all cursor-pointer"
+              >
+                <Flame className="w-3.5 h-3.5 text-crimson" />
+                Truy nã câu khó
+              </button>
+              <button
+                type="button"
                 onClick={() => scrollToSection('manifesto')}
                 className="rounded-full px-3 py-1.5 text-[13.5px] text-[#5e4249] hover:bg-[#fff5f6] hover:text-crimson transition-all cursor-pointer"
               >
@@ -369,6 +380,17 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className="w-full text-left rounded-2xl px-3.5 py-3 text-[15px] text-[#5e4249] dark:text-[#ebc9cf] hover:bg-[#fff5f6] dark:hover:bg-white/5 hover:text-crimson transition"
               >
                 Cấp bậc &amp; Danh hiệu
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  onOpenBounty();
+                }}
+                className="w-full text-left rounded-2xl px-3.5 py-3 text-[15px] font-medium text-crimson hover:bg-[#fff5f6] transition flex items-center gap-2"
+              >
+                <Flame className="w-4 h-4" />
+                Truy nã câu khó
               </button>
               <button
                 type="button"

@@ -2,7 +2,7 @@ import { BookOpen, EyeOff, Lightbulb, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface MascotCompanionProps {
-  view: 'home' | 'exam' | 'result' | 'admin';
+  view: 'home' | 'exam' | 'result' | 'admin' | 'bounty';
   latestScore?: number | null;
   isWrongBookOpen?: boolean;
   onOpenWrongBook: () => void;
@@ -79,6 +79,14 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
     if (isWrongBookOpen) {
       setBubbleVisible(true);
       setDialogue('Đấy, sai ở đâu vá ở đấy, thế mới là dân Bách khoa!');
+      return;
+    }
+
+    if (view === 'bounty') {
+      setBubbleVisible(true);
+      setDialogue(
+        'Toàn câu 70% dân tình gục ngã đấy! Giải được câu nào là lên thẳng Bảng Vàng luôn! 🔥'
+      );
       return;
     }
 

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AchievementToast } from './components/AchievementToast';
 import { AdminPage } from './components/AdminPage';
 import { AuthModal } from './components/AuthModal';
+import { BountyBoardPage } from './components/BountyBoardPage';
 import { ExamRoom } from './components/ExamRoom';
 import { HomePage } from './components/HomePage';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -11,6 +12,7 @@ import { OmikujiModal } from './components/OmikujiModal';
 import { ResultView, type XpAwardSummary } from './components/ResultView';
 import { WrongNotebookModal } from './components/WrongNotebookModal';
 import { evaluateAndUnlockAchievements } from './lib/achievementService';
+import { recordQuestionStats } from './lib/bountyService';
 import { fetchExams, getLeaderboard, submitAttempt } from './lib/examService';
 import {
   awardExamXp,
@@ -26,7 +28,7 @@ import type { AchievementDefinition } from './utils/achievements';
 import { calculateEarnedXp } from './utils/ranks';
 import { gradeExam } from './utils/scoring';
 
-type ViewMode = 'home' | 'exam' | 'result' | 'admin';
+type ViewMode = 'home' | 'exam' | 'result' | 'admin' | 'bounty';
 
 function getDisplayNameFromUser(user: User | null): string {
   if (!user) return '';
@@ -256,6 +258,14 @@ export function App() {
       setLeaderboardRefreshKey((k) => k + 1);
       void getLeaderboard(result.examId);
 
+      if (!isFlagged) {
+        void recordQuestionStats({
+          exam: activeExam,
+          answers,
+          targetSectionId,
+        });
+      }
+
       if (!isFlagged && user) {
         const sectionDuration = targetSectionId
           ? activeExam.sections?.find((s) => s.id === targetSectionId)?.duration_minutes
@@ -293,6 +303,57 @@ export function App() {
         fadeMs={400}
         onComplete={() => setIsPreloading(false)}
       />
+    );
+  }
+
+  if (view === 'bounty') {
+    return (
+      <>
+        <BountyBoardPage
+          exams={exams}
+          user={user}
+          profile={profile}
+          isSuperAdmin={isSuperAdmin}
+          onBackHome={() => setView('home')}
+          onRequireAuth={(notice) => {
+            setGlobalAuthNotice(notice);
+            setGlobalAuthOpen(true);
+          }}
+        />
+        <AuthModal
+          isOpen={globalAuthOpen}
+          onClose={() => {
+            setGlobalAuthOpen(false);
+            setGlobalAuthNotice(null);
+          }}
+          notice={globalAuthNotice}
+        />
+        <WrongNotebookModal
+          isOpen={wrongBookOpen}
+          userId={user?.id}
+          exams={exams}
+          refreshKey={leaderboardRefreshKey}
+          onClose={() => setWrongBookOpen(false)}
+          onRequireAuth={() => {
+            setGlobalAuthNotice('Vui lòng đăng nhập tài khoản để xem Sổ tay câu sai');
+            setGlobalAuthOpen(true);
+          }}
+        />
+        <MascotCompanion
+          view="bounty"
+          isWrongBookOpen={wrongBookOpen}
+          onOpenWrongBook={() => setWrongBookOpen(true)}
+          onOpenOmikuji={() => setOmikujiOpen(true)}
+        />
+        <OmikujiModal
+          isOpen={omikujiOpen}
+          onClose={() => setOmikujiOpen(false)}
+          onProceedToExam={() => {
+            setOmikujiOpen(false);
+            setView('home');
+          }}
+        />
+      </>
     );
   }
 
@@ -413,6 +474,7 @@ export function App() {
         onStartExam={handleStartExam}
         onRefresh={loadExams}
         onOpenAdmin={() => setView('admin')}
+        onOpenBounty={() => setView('bounty')}
         onSignOut={handleSignOut}
         onSaveTargetGoal={handleSaveTargetGoal}
         leaderboardRefreshKey={leaderboardRefreshKey}
