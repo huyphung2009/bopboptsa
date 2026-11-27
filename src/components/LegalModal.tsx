@@ -65,7 +65,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-[#FFFFFF]">
           <h2
             id="legal-modal-title"
-            className="text-sm font-bold text-black tracking-tight"
+            className="text-sm font-bold text-crimson tracking-tight"
           >
             Điều khoản sử dụng, Chính sách bảo mật &amp; Miễn trừ trách nhiệm
           </h2>
@@ -84,7 +84,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           ref={scrollContainerRef}
           className="max-h-[70vh] overflow-y-auto px-6 py-5 bg-[#FFFFFF] text-[#1F2937] text-[13px] leading-[1.7] text-justify space-y-4"
         >
-          <p className="font-bold text-black text-center">
+          <p className="font-bold text-[#991b1b] text-center">
             THỎA THUẬN ĐIỀU KHOẢN SỬ DỤNG, CHÍNH SÁCH BẢO MẬT VÀ TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM CỦA HỆ THỐNG LUYỆN THI TRỰC TUYẾN PARABOL
           </p>
 
@@ -99,7 +99,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </p>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 1. ĐỊNH NGHĨA VÀ GIẢI THÍCH THUẬT NGỮ
             </h3>
             <p>
@@ -117,7 +117,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 2. BẢN CHẤT NỀN TẢNG, TÍNH CHẤT PHI THƯƠNG MẠI VÀ ĐỘC LẬP
             </h3>
             <p>
@@ -132,7 +132,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 3. ĐIỀU KIỆN ĐĂNG KÝ, QUẢN LÝ TÀI KHOẢN VÀ NGHĨA VỤ NGƯỜI DÙNG
             </h3>
             <p>
@@ -150,7 +150,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 4. QUY CHẾ PHÒNG THI, HỆ THỐNG GIÁM SÁT VÀ BẢNG XẾP HẠNG
             </h3>
             <p>
@@ -168,7 +168,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 5. QUYỀN SỞ HỮU TRÍ TUỆ, BẢN QUYỀN TÀI LIỆU VÀ CƠ CHẾ GỠ BỎ
             </h3>
             <p>
@@ -186,7 +186,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div id="legal-dieu-6" className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 6. TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM TUYỆT ĐỐI
             </h3>
             <p>
@@ -207,7 +207,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div id="legal-dieu-7" className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 7. CHÍNH SÁCH BẢO MẬT VÀ CAM KẾT KHÔNG THU THẬP DỮ LIỆU CÁ NHÂN NHẠY CẢM
             </h3>
             <p>
@@ -225,7 +225,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 8. LƯU TRỮ DỮ LIỆU, BẢO MẬT HẠ TẦNG VÀ QUYỀN CỦA NGƯỜI DÙNG
             </h3>
             <p>
@@ -240,7 +240,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 9. SỬA ĐỔI ĐIỀU KHOẢN VÀ HIỆU LỰC THI HÀNH
             </h3>
             <p>
@@ -255,7 +255,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-black">
+            <h3 className="font-bold text-[#991b1b]">
               ĐIỀU 10. THÔNG TIN LIÊN HỆ VÀ TIẾP NHẬN YÊU CẦU
             </h3>
             <p>
@@ -269,7 +269,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-md bg-neutral-900 text-white text-xs font-semibold hover:bg-neutral-800 transition-colors cursor-pointer"
+            className="btn btn-crimson !px-5 !py-2 text-xs font-semibold"
           >
             Tôi đã hiểu
           </button>
