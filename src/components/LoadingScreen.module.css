@@ -21,26 +21,36 @@
   --animation-duration: 2.1s;
   --cube-color: #fff5f6;
   --highlight-color: #dc263e;
-  --cube-width: 52px;
-  --cube-height: 52px;
-  --font-size: 1.85em;
+  --cube-width: 44px;
+  --cube-height: 44px;
+  --cube-gap: 6px;
+  --font-size: 1.45em;
 
   position: relative;
   inset: 0;
 
   display: grid;
-  grid-template-columns: repeat(3, var(--cube-width));
+  grid-template-columns: repeat(7, var(--cube-width));
   grid-template-rows: auto;
-  grid-gap: 0;
+  gap: var(--cube-gap);
 
-  width: calc(3 * var(--cube-width));
+  width: calc(7 * var(--cube-width) + 6 * var(--cube-gap));
   height: var(--cube-height);
-  perspective: 360px;
+  perspective: 420px;
 
   font-family: "Poppins", "Inter", sans-serif;
   font-size: var(--font-size);
   font-weight: 800;
   color: transparent;
+}
+
+@media (max-width: 520px) {
+  .wrapperGrid {
+    --cube-width: 34px;
+    --cube-height: 34px;
+    --cube-gap: 4px;
+    --font-size: 1.1em;
+  }
 }
 
 .cube {
@@ -115,11 +125,27 @@
 }
 .cube:nth-child(2) {
   z-index: 1;
-  animation-delay: 0.2s;
+  animation-delay: 0.09s;
 }
 .cube:nth-child(3) {
   z-index: 2;
-  animation-delay: 0.4s;
+  animation-delay: 0.18s;
+}
+.cube:nth-child(4) {
+  z-index: 3;
+  animation-delay: 0.27s;
+}
+.cube:nth-child(5) {
+  z-index: 4;
+  animation-delay: 0.36s;
+}
+.cube:nth-child(6) {
+  z-index: 5;
+  animation-delay: 0.45s;
+}
+.cube:nth-child(7) {
+  z-index: 6;
+  animation-delay: 0.54s;
 }
 
 @keyframes translate-z {

@@ -7,7 +7,7 @@ interface LoadingScreenProps {
   onComplete?: () => void;
 }
 
-const LETTERS = ['T', 'S', 'A'];
+const LETTERS = ['P', 'A', 'R', 'A', 'B', 'O', 'L'];
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   delayMs = 1700,
@@ -38,8 +38,8 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       aria-label="Đang tải Parabol"
     >
       <div className={styles.wrapperGrid}>
-        {LETTERS.map((letter) => (
-          <div key={letter} className={styles.cube}>
+        {LETTERS.map((letter, idx) => (
+          <div key={`${letter}-${idx}`} className={styles.cube}>
             <div className={`${styles.face} ${styles.faceFront}`}>{letter}</div>
             <div className={`${styles.face} ${styles.faceBack}`} />
             <div className={`${styles.face} ${styles.faceRight}`} />
