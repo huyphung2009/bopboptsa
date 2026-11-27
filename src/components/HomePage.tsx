@@ -39,8 +39,6 @@ interface HomePageProps {
   profile: UserProfile | null;
   isAdmin: boolean;
   isSuperAdmin: boolean;
-  studentName: string;
-  onChangeStudentName: (name: string) => void;
   onStartExam: (exam: Exam, targetSectionId?: string) => void;
   onRefresh: () => void;
   onOpenAdmin: () => void;
@@ -66,8 +64,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   profile,
   isAdmin,
   isSuperAdmin,
-  studentName,
-  onChangeStudentName,
   onStartExam,
   onRefresh,
   onOpenAdmin,
@@ -79,6 +75,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [leaderboardExam, setLeaderboardExam] = useState<Exam | null>(null);
   const [ranksModalOpen, setRanksModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
   const [modeSelectExam, setModeSelectExam] = useState<Exam | null>(null);
 
@@ -151,10 +148,12 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const handleEnterExam = (exam: Exam) => {
     if (user) {
+      setAuthNotice(null);
       proceedWithExam(exam);
       return;
     }
     setPendingExam(exam);
+    setAuthNotice('Vui lòng đăng nhập tài khoản để làm bài và xem lời giải');
     setAuthModalOpen(true);
   };
 
@@ -935,21 +934,11 @@ export const HomePage: React.FC<HomePageProps> = ({
         isOpen={authModalOpen}
         onClose={() => {
           setAuthModalOpen(false);
+          setAuthNotice(null);
           setPendingExam(null);
         }}
         pendingExamTitle={pendingExam?.title}
-        guestName={studentName}
-        onChangeGuestName={onChangeStudentName}
-        onContinueAsGuest={
-          pendingExam
-            ? () => {
-                const target = pendingExam;
-                setAuthModalOpen(false);
-                setPendingExam(null);
-                proceedWithExam(target);
-              }
-            : undefined
-        }
+        notice={authNotice}
       />
 
       <ExamModeModal

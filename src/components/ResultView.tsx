@@ -31,23 +31,27 @@ export interface XpAwardSummary {
 interface ResultViewProps {
   exam: Exam;
   result: ExamAttemptResult;
+  isAuthenticated: boolean;
   saveStatus: 'saving' | 'saved' | 'error';
   saveError?: string;
   xpAward: XpAwardSummary | null;
   leaderboardRefreshKey: number;
   onBackHome: () => void;
   onRetry: () => void;
+  onRequireAuth: (notice: string) => void;
 }
 
 export const ResultView: React.FC<ResultViewProps> = ({
   exam,
   result,
+  isAuthenticated,
   saveStatus,
   saveError,
   xpAward,
   leaderboardRefreshKey,
   onBackHome,
   onRetry,
+  onRequireAuth,
 }) => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
@@ -268,9 +272,25 @@ export const ResultView: React.FC<ResultViewProps> = ({
               Chi tiết bài làm &amp; Lời giải
             </h2>
 
-            {exam.questions
-              .filter((q) => Boolean(result.questionResults[q.id]))
-              .map((q, idx) => {
+            {!isAuthenticated ? (
+              <div className="glass-card rounded-[24px] p-6 text-center space-y-3">
+                <p className="text-sm font-medium text-[#2a161b] dark:text-[#fff2f4]">
+                  Vui lòng đăng nhập tài khoản để làm bài và xem lời giải
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onRequireAuth('Vui lòng đăng nhập tài khoản để làm bài và xem lời giải')
+                  }
+                  className="btn btn-crimson btn-sm"
+                >
+                  Xem lời giải chi tiết
+                </button>
+              </div>
+            ) : (
+              exam.questions
+                .filter((q) => Boolean(result.questionResults[q.id]))
+                .map((q, idx) => {
                 const qRes = result.questionResults[q.id];
                 const passage = q.passageId
                   ? exam.passages.find((p) => p.id === q.passageId)
@@ -336,7 +356,8 @@ export const ResultView: React.FC<ResultViewProps> = ({
                     )}
                   </article>
                 );
-              })}
+              })
+            )}
           </section>
         </main>
       </div>

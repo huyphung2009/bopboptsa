@@ -1,8 +1,10 @@
 import type { User } from '@supabase/supabase-js';
 import { useCallback, useEffect, useState } from 'react';
 import { AdminPage } from './components/AdminPage';
+import { AuthModal } from './components/AuthModal';
 import { ExamRoom } from './components/ExamRoom';
 import { HomePage } from './components/HomePage';
+import { LoadingScreen } from './components/LoadingScreen';
 import { ResultView, type XpAwardSummary } from './components/ResultView';
 import { fetchExams, getLeaderboard, submitAttempt } from './lib/examService';
 import {
@@ -47,6 +49,8 @@ export function App() {
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error'>('saving');
   const [saveError, setSaveError] = useState<string | undefined>(undefined);
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
+  const [globalAuthOpen, setGlobalAuthOpen] = useState(false);
+  const [globalAuthNotice, setGlobalAuthNotice] = useState<string | null>(null);
 
   // Enforce crisp light theme
   useEffect(() => {
@@ -121,6 +125,11 @@ export function App() {
   };
 
   const handleStartExam = (exam: Exam, targetSectionId?: string) => {
+    if (!user) {
+      setGlobalAuthNotice('Vui lòng đăng nhập tài khoản để làm bài và xem lời giải');
+      setGlobalAuthOpen(true);
+      return;
+    }
     setActiveExam(exam);
     setActiveSectionId(targetSectionId);
     setAttemptResult(null);
@@ -247,36 +256,52 @@ export function App() {
 
   if (view === 'result' && activeExam && attemptResult) {
     return (
-      <ResultView
-        exam={activeExam}
-        result={attemptResult}
-        saveStatus={saveStatus}
-        saveError={saveError}
-        xpAward={xpAward}
-        leaderboardRefreshKey={leaderboardRefreshKey}
-        onBackHome={() => setView('home')}
-        onRetry={() => handleStartExam(activeExam, activeSectionId)}
-      />
+      <>
+        <ResultView
+          exam={activeExam}
+          result={attemptResult}
+          isAuthenticated={Boolean(user)}
+          saveStatus={saveStatus}
+          saveError={saveError}
+          xpAward={xpAward}
+          leaderboardRefreshKey={leaderboardRefreshKey}
+          onBackHome={() => setView('home')}
+          onRetry={() => handleStartExam(activeExam, activeSectionId)}
+          onRequireAuth={(notice) => {
+            setGlobalAuthNotice(notice);
+            setGlobalAuthOpen(true);
+          }}
+        />
+        <AuthModal
+          isOpen={globalAuthOpen}
+          onClose={() => {
+            setGlobalAuthOpen(false);
+            setGlobalAuthNotice(null);
+          }}
+          notice={globalAuthNotice}
+        />
+      </>
     );
   }
 
   return (
-    <HomePage
-      exams={exams}
-      loading={loadingExams}
-      fromFallback={fromFallback}
-      user={user}
-      profile={profile}
-      isAdmin={isAdmin}
-      isSuperAdmin={isSuperAdmin}
-      studentName={studentName}
-      onChangeStudentName={setStudentName}
-      onStartExam={handleStartExam}
-      onRefresh={loadExams}
-      onOpenAdmin={() => setView('admin')}
-      onSignOut={handleSignOut}
-      leaderboardRefreshKey={leaderboardRefreshKey}
-    />
+    <>
+      <LoadingScreen delayMs={1700} fadeMs={450} />
+      <HomePage
+        exams={exams}
+        loading={loadingExams}
+        fromFallback={fromFallback}
+        user={user}
+        profile={profile}
+        isAdmin={isAdmin}
+        isSuperAdmin={isSuperAdmin}
+        onStartExam={handleStartExam}
+        onRefresh={loadExams}
+        onOpenAdmin={() => setView('admin')}
+        onSignOut={handleSignOut}
+        leaderboardRefreshKey={leaderboardRefreshKey}
+      />
+    </>
   );
 }
 

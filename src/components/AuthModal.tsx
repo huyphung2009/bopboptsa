@@ -1,4 +1,4 @@
-import { ArrowRight, Lock, LogIn, Mail, User, UserPlus, X } from 'lucide-react';
+import { AlertCircle, Lock, LogIn, Mail, User, UserPlus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Logo } from './Logo';
@@ -7,18 +7,14 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   pendingExamTitle?: string;
-  guestName?: string;
-  onChangeGuestName?: (name: string) => void;
-  onContinueAsGuest?: () => void;
+  notice?: string | null;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   pendingExamTitle,
-  guestName = '',
-  onChangeGuestName,
-  onContinueAsGuest,
+  notice,
 }) => {
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [fullName, setFullName] = useState('');
@@ -27,7 +23,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [guestError, setGuestError] = useState('');
 
   if (!isOpen) return null;
 
@@ -88,15 +83,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleGuestStart = () => {
-    if (!guestName.trim()) {
-      setGuestError('Vui lòng nhập Họ và tên để thi nhanh.');
-      return;
-    }
-    setGuestError('');
-    onContinueAsGuest?.();
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#261118]/40 backdrop-blur-sm p-4">
       <div className="w-full max-w-md rounded-[26px] bg-white/95 dark:bg-[#1b0d13]/95 backdrop-blur-2xl shadow-[0_32px_90px_-28px_rgba(38,17,24,0.45)] border border-[var(--line)] overflow-hidden">
@@ -129,40 +115,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         <div className="p-6 space-y-5 max-h-[82vh] overflow-y-auto custom-scrollbar">
-          {/* Guest Quick Exam Option */}
-          {onContinueAsGuest && (
-            <div className="rounded-2xl border border-[#dc263e]/25 bg-[#fff5f6]/90 dark:bg-[#26131a]/85 p-4 space-y-2.5">
-              <div className="text-xs font-semibold text-[#b91c30] dark:text-[#fbbac3]">
-                Thi nhanh với tư cách Khách
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={guestName}
-                  onChange={(e) => {
-                    onChangeGuestName?.(e.target.value);
-                    if (guestError) setGuestError('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleGuestStart();
-                  }}
-                  placeholder="Nhập Họ và tên thí sinh..."
-                  className="flex-1 rounded-full border border-[var(--line)] bg-white dark:bg-[#13090d] px-4 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] placeholder:text-[#876870]/70 focus:border-crimson focus:ring-2 focus:ring-crimson/15 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleGuestStart}
-                  className="btn btn-crimson btn-sm shrink-0"
-                >
-                  Vào thi
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              {guestError && (
-                <p className="text-xs font-medium text-rose-600 dark:text-rose-400">
-                  {guestError}
-                </p>
-              )}
+          {notice && (
+            <div className="rounded-2xl border border-[#dc263e]/30 bg-[#fff5f6] dark:bg-[#2a121a] px-4 py-3 flex items-start gap-2.5 text-xs font-medium text-[#b91c30] dark:text-[#fbbac3]">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{notice}</span>
             </div>
           )}
 
