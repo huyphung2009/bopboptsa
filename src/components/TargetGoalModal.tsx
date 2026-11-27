@@ -53,13 +53,10 @@ const GOAL_PRESETS: { label: string; goal: TargetGoalPayload }[] = [
 ];
 
 const EXAM_TYPE_OPTIONS = [
-  { value: 'TSA', label: 'TSA (Đánh giá tư duy Bách Khoa - Thang 100)' },
-  { value: 'HSA', label: 'HSA (Đánh giá năng lực ĐHQGHN - Thang 150)' },
-  { value: 'VACT', label: 'V-ACT (Đánh giá năng lực ĐHQGTPHCM - Thang 1200)' },
-  { value: 'QDA', label: 'QDA (ĐGNL Quân đội - Thang 150)' },
-  { value: 'VSAT', label: 'V-SAT (Đánh giá đầu vào ĐH - Thang 150)' },
-  { value: 'BCA', label: 'BCA (Đánh giá Bộ Công an - Thang 100)' },
-  { value: 'THPTQG', label: 'THPTQG (Tốt nghiệp THPT)' },
+  { value: 'TSA', label: 'TSA (Đánh giá tư duy Bách Khoa - Thang 100)', maxScore: 100, defaultScore: 80 },
+  { value: 'HSA', label: 'HSA (Đánh giá năng lực ĐHQGHN - Thang 150)', maxScore: 150, defaultScore: 115 },
+  { value: 'VACT', label: 'V-ACT (Đánh giá năng lực ĐHQGTPHCM - Thang 1200)', maxScore: 1200, defaultScore: 950 },
+  { value: 'THPTQG', label: 'THPTQG (Tốt nghiệp THPT - Thang 30)', maxScore: 30, defaultScore: 27 },
 ];
 
 export const TargetGoalModal: React.FC<TargetGoalModalProps> = ({
@@ -210,7 +207,14 @@ export const TargetGoalModal: React.FC<TargetGoalModalProps> = ({
               </label>
               <select
                 value={examType}
-                onChange={(e) => setExamType(e.target.value)}
+                onChange={(e) => {
+                  const nextType = e.target.value;
+                  setExamType(nextType);
+                  const matched = EXAM_TYPE_OPTIONS.find((o) => o.value === nextType);
+                  if (matched) {
+                    setTargetScore(String(matched.defaultScore));
+                  }
+                }}
                 className="w-full rounded-full border border-[var(--line)] bg-white dark:bg-[#13090d] px-4 py-2 text-sm font-medium text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
               >
                 {EXAM_TYPE_OPTIONS.map((opt) => (
@@ -223,12 +227,14 @@ export const TargetGoalModal: React.FC<TargetGoalModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
-                Điểm mục tiêu
+                Điểm mục tiêu (Thang{' '}
+                {EXAM_TYPE_OPTIONS.find((o) => o.value === examType)?.maxScore ?? 100})
               </label>
               <input
                 type="number"
                 step="0.1"
                 min="1"
+                max={EXAM_TYPE_OPTIONS.find((o) => o.value === examType)?.maxScore ?? 1200}
                 required
                 value={targetScore}
                 onChange={(e) => setTargetScore(e.target.value)}

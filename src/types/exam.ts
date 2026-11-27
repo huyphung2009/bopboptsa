@@ -1,4 +1,4 @@
-export type ExamType = 'TSA' | 'HSA' | 'VACT' | 'QDA' | 'VSAT' | 'BCA';
+export type ExamType = 'TSA' | 'HSA' | 'VACT' | 'THPTQG' | 'QDA' | 'VSAT' | 'BCA';
 
 export type QuestionType =
   | 'single_choice'

@@ -21,7 +21,13 @@ import cardImage2 from '../../image/ảnh 2.png';
 import type { TargetGoalPayload, UserProfile } from '../lib/profileService';
 import type { Exam } from '../types/exam';
 import { resolveExamSections } from '../utils/examSections';
-import { getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
+import {
+  getExamTypeMeta,
+  getSubFiltersForExamType,
+  MAIN_EXAM_TABS,
+  normalizeExamType,
+  type ExamTabFilter,
+} from '../utils/examTypes';
 import { AuthModal } from './AuthModal';
 import { CloudBackdrop } from './CloudBackdrop';
 import { ExamModeModal } from './ExamModeModal';
@@ -89,7 +95,8 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [modeSelectExam, setModeSelectExam] = useState<Exam | null>(null);
   const [legalTab, setLegalTab] = useState<LegalTab | null>(null);
 
-  const [selectedSection, setSelectedSection] = useState<SectionFilter>('ALL');
+  const [selectedExamType, setSelectedExamType] = useState<ExamTabFilter>('ALL');
+  const [selectedSection, setSelectedSection] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [onlyProctored, setOnlyProctored] = useState(false);
   const [onlyMultiSection, setOnlyMultiSection] = useState(false);
@@ -104,9 +111,18 @@ export const HomePage: React.FC<HomePageProps> = ({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  const dynamicSubFilters = useMemo(
+    () => getSubFiltersForExamType(selectedExamType),
+    [selectedExamType]
+  );
+
   const filteredExams = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return exams.filter((exam) => {
+      const normalizedType = normalizeExamType(exam.exam_type);
+      if (selectedExamType !== 'ALL' && normalizedType !== selectedExamType) {
+        return false;
+      }
       if (selectedSection !== 'ALL') {
         const secLower = (exam.section ?? '').toLowerCase();
         if (selectedSection === 'Tổng hợp') {
@@ -114,12 +130,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             return false;
           }
         } else {
-          const keyword =
-            selectedSection === 'Tư duy Toán học'
-              ? 'toán'
-              : selectedSection === 'Tư duy Đọc hiểu'
-                ? 'đọc'
-                : 'khoa học';
+          const keyword = selectedSection.toLowerCase();
           const hasSectionMatch =
             secLower.includes(keyword) ||
             exam.questions.some((q) => q.section.toLowerCase().includes(keyword));
@@ -133,12 +144,12 @@ export const HomePage: React.FC<HomePageProps> = ({
         return false;
       }
       if (query) {
-        const haystack = `${exam.title} ${exam.description} ${exam.section ?? ''} TSA`.toLowerCase();
+        const haystack = `${exam.title} ${exam.description} ${exam.section ?? ''} ${normalizedType}`.toLowerCase();
         return haystack.includes(query);
       }
       return true;
     });
-  }, [exams, selectedSection, searchQuery, onlyProctored, onlyMultiSection]);
+  }, [exams, selectedExamType, selectedSection, searchQuery, onlyProctored, onlyMultiSection]);
 
   const userAvatar = user?.user_metadata?.avatar_url as string | undefined;
   const userDisplayName =
@@ -419,15 +430,15 @@ export const HomePage: React.FC<HomePageProps> = ({
             {/* Typing Display Headline with Crimson-Mist Cursor */}
             <h1 className="mx-auto mt-2 max-w-[820px] text-[clamp(2rem,5vw,3.55rem)] font-normal leading-[1.12] tracking-[-0.032em] text-[#2a161b]">
               <MistTyper
-                text="Chinh phục mọi kỳ thi đánh giá tư duy"
+                text="Chinh phục mọi kỳ thi tuyển sinh Đại học"
                 baseDelay={42}
                 jitter={20}
                 startDelay={180}
               />
             </h1>
 
-            <p className="mx-auto mt-4 max-w-[560px] text-[14.5px] sm:text-[15.5px] leading-relaxed text-[#876870] dark:text-[#c49ba3]">
-              Không gian luyện thi trực tuyến thanh thoát, chia đôi ngữ liệu thông minh, tích lũy XP và bảng xếp hạng thời gian thực.
+            <p className="mx-auto mt-4 max-w-[600px] text-[13.5px] sm:text-[15px] font-medium tracking-wide text-[#876870] dark:text-[#c49ba3]">
+              TSA HUST · HSA ĐHQGHN · V-ACT ĐHQG-HCM · THPT Quốc gia
             </p>
 
             {/* THREE FROSTED ACTION PILLS */}
@@ -487,6 +498,30 @@ export const HomePage: React.FC<HomePageProps> = ({
         )}
 
         <section id="exam-library" className="relative mx-auto max-w-[1200px] px-4 sm:px-6 pb-20 sm:pb-28 scroll-mt-24">
+          {/* Prominent Exam Type Switcher Tabs */}
+          <div className="mb-7 flex flex-wrap items-center gap-2">
+            {MAIN_EXAM_TABS.map((tab) => {
+              const active = selectedExamType === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => {
+                    setSelectedExamType(tab.value);
+                    setSelectedSection('ALL');
+                  }}
+                  className={`rounded-full px-4 py-2 text-xs sm:text-[13px] font-semibold border transition-all cursor-pointer ${
+                    active
+                      ? 'bg-crimson text-white border-crimson shadow-[0_8px_20px_-8px_rgba(220,38,62,0.55)]'
+                      : 'bg-white/90 dark:bg-[#1d0f15] text-[#5e4249] dark:text-[#ebc9cf] border-[var(--line)] hover:border-crimson/40 hover:text-crimson'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
@@ -527,13 +562,13 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
 
-          {/* Frosted Segmented Section Tabs */}
+          {/* Frosted Dynamic Sub-filters */}
           <div
             className="mt-7 inline-flex max-w-full flex-wrap gap-1.5 rounded-3xl sm:rounded-full border border-[var(--line)] bg-[#fff5f6]/85 dark:bg-[#1d0f15]/85 p-1.5 backdrop-blur-md"
             role="tablist"
-            aria-label="Lọc theo phân môn TSA"
+            aria-label="Lọc theo phân môn"
           >
-            {TSA_SECTION_FILTERS.map((item) => {
+            {dynamicSubFilters.map((item) => {
               const active = selectedSection === item.value;
               return (
                 <button
@@ -558,7 +593,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm đề thi TSA (Toán học, Đọc hiểu, Khoa học...)"
+                placeholder="Tìm kiếm đề thi TSA, HSA, V-ACT, THPTQG..."
                 aria-label="Tìm kiếm đề thi"
                 className="w-full bg-transparent text-[13.5px] text-[#2a161b] dark:text-[#fff2f4] placeholder:text-[#876870]/75 dark:placeholder:text-[#b88c95]/70 outline-none"
               />

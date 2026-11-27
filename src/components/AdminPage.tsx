@@ -35,8 +35,8 @@ import {
   SUPER_ADMIN_EMAIL,
   type AppAdminRecord,
 } from '../lib/profileService';
-import type { Exam, ExamSection, Passage, Question } from '../types/exam';
-import { getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
+import type { Exam, ExamSection, ExamType, Passage, Question } from '../types/exam';
+import { EXAM_TYPES, getAdminSectionsForType, getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
 import { CloudBackdrop } from './CloudBackdrop';
 import { Logo } from './Logo';
 import { MathText } from './MathText';
@@ -58,13 +58,6 @@ const ADMIN_EMAILS = (
   .split(',')
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
-
-const EXAM_SECTIONS = [
-  'Tổng hợp',
-  'Tư duy Toán học',
-  'Tư duy Đọc hiểu',
-  'Tư duy Khoa học',
-];
 
 function createEmptyQuestion(index: number): Question {
   return {
@@ -146,7 +139,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const examType = 'TSA' as const;
+  const [examType, setExamType] = useState<ExamType>('TSA');
   const [section, setSection] = useState('Tổng hợp');
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [antiCheat, setAntiCheat] = useState(true);
@@ -245,6 +238,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setEditingId(undefined);
     setTitle('');
     setDescription('');
+    setExamType('TSA');
     setSection('Tổng hợp');
     setDurationMinutes(60);
     setAntiCheat(true);
@@ -259,6 +253,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     setEditingId(exam.is_sample ? undefined : exam.id);
     setTitle(exam.title);
     setDescription(exam.description);
+    setExamType(normalizeExamType(exam.exam_type));
     setSection(exam.section || 'Tổng hợp');
     setDurationMinutes(exam.duration_minutes || 60);
     setAntiCheat(exam.anti_cheat !== false);
@@ -959,23 +954,38 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
                 <div>
                   <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
-                    Kỳ thi
+                    Kỳ thi (exam_type)
                   </label>
-                  <div className="w-full rounded-2xl border border-[#dc263e]/30 bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 px-3.5 py-2 text-sm font-semibold text-[#b91c30] dark:text-[#fbbac3]">
-                    TSA (Bách Khoa)
-                  </div>
+                  <select
+                    value={examType}
+                    onChange={(e) => {
+                      const nextType = normalizeExamType(e.target.value);
+                      setExamType(nextType);
+                      const validSections = getAdminSectionsForType(nextType);
+                      if (!validSections.includes(section)) {
+                        setSection(validSections[0] ?? 'Tổng hợp');
+                      }
+                    }}
+                    className="w-full rounded-2xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-2 text-sm font-semibold text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
+                  >
+                    {EXAM_TYPES.slice(0, 4).map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
-                    Phân môn
+                    Phần thi / Môn thi
                   </label>
                   <select
                     value={section}
                     onChange={(e) => setSection(e.target.value)}
                     className="w-full rounded-2xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
                   >
-                    {EXAM_SECTIONS.map((s) => (
+                    {getAdminSectionsForType(examType).map((s) => (
                       <option key={s} value={s}>
                         {s}
                       </option>

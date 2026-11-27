@@ -78,6 +78,22 @@ export const EXAM_FORMATS: Record<ExamType, ExamFormatConfig> = {
       },
     ],
   },
+  THPTQG: {
+    exam_type: 'THPTQG',
+    fullName: 'Kỳ thi Tốt nghiệp THPT Quốc gia (THPTQG)',
+    reportTitle: 'PHIẾU BÁO ĐIỂM THI THỬ TỐT NGHIỆP THPT QUỐC GIA — THANG 10',
+    totalMaxScore: 10,
+    totalDurationMinutes: 90,
+    sections: [
+      {
+        id: 'sec-thpt-main',
+        title: 'Bài thi môn thành phần',
+        questionCount: 40,
+        duration_minutes: 90,
+        max_score: 10,
+      },
+    ],
+  },
   QDA: {
     exam_type: 'QDA',
     fullName: 'Đánh giá năng lực Quân đội (QDA)',
