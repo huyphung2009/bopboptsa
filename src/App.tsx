@@ -1,11 +1,13 @@
 import type { User } from '@supabase/supabase-js';
 import { useCallback, useEffect, useState } from 'react';
+import { AchievementToast } from './components/AchievementToast';
 import { AdminPage } from './components/AdminPage';
 import { AuthModal } from './components/AuthModal';
 import { ExamRoom } from './components/ExamRoom';
 import { HomePage } from './components/HomePage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { ResultView, type XpAwardSummary } from './components/ResultView';
+import { evaluateAndUnlockAchievements } from './lib/achievementService';
 import { fetchExams, getLeaderboard, submitAttempt } from './lib/examService';
 import {
   awardExamXp,
@@ -17,6 +19,7 @@ import {
 } from './lib/profileService';
 import { supabase } from './lib/supabase';
 import type { Exam, ExamAttemptResult, UserAnswers } from './types/exam';
+import type { AchievementDefinition } from './utils/achievements';
 import { calculateEarnedXp } from './utils/ranks';
 import { gradeExam } from './utils/scoring';
 
@@ -55,6 +58,7 @@ export function App() {
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
   const [globalAuthOpen, setGlobalAuthOpen] = useState(false);
   const [globalAuthNotice, setGlobalAuthNotice] = useState<string | null>(null);
+  const [unlockedToasts, setUnlockedToasts] = useState<AchievementDefinition[]>([]);
 
   // Enforce crisp light theme
   useEffect(() => {
@@ -246,6 +250,31 @@ export function App() {
       setSaveStatus('saved');
       setLeaderboardRefreshKey((k) => k + 1);
       void getLeaderboard(result.examId);
+
+      if (!isFlagged && user) {
+        const sectionDuration = targetSectionId
+          ? activeExam.sections?.find((s) => s.id === targetSectionId)?.duration_minutes
+          : undefined;
+        const allowedDurationSeconds =
+          Number(sectionDuration ?? activeExam.duration_minutes ?? 60) * 60;
+
+        void evaluateAndUnlockAchievements({
+          userId: user.id,
+          score100: result.score100,
+          timeSpentSeconds: result.timeSpentSeconds,
+          allowedDurationSeconds,
+          submittedAt: new Date(),
+          examsCompletedFallback: (profile?.exams_completed ?? 0) + 1,
+        }).then((newlyUnlocked) => {
+          if (newlyUnlocked.length > 0) {
+            setUnlockedToasts((prev) => [...prev, ...newlyUnlocked]);
+            setTimeout(() => {
+              const ids = new Set(newlyUnlocked.map((a) => a.id));
+              setUnlockedToasts((prev) => prev.filter((a) => !ids.has(a.id)));
+            }, 7000);
+          }
+        });
+      }
     } else {
       setSaveStatus('error');
       setSaveError(res.errorMessage);
@@ -317,26 +346,40 @@ export function App() {
           }}
           notice={globalAuthNotice}
         />
+        <AchievementToast
+          achievements={unlockedToasts}
+          onDismiss={(id) =>
+            setUnlockedToasts((prev) => prev.filter((item) => item.id !== id))
+          }
+        />
       </>
     );
   }
 
   return (
-    <HomePage
-      exams={exams}
-      loading={loadingExams}
-      fromFallback={fromFallback}
-      user={user}
-      profile={profile}
-      isAdmin={isAdmin}
-      isSuperAdmin={isSuperAdmin}
-      onStartExam={handleStartExam}
-      onRefresh={loadExams}
-      onOpenAdmin={() => setView('admin')}
-      onSignOut={handleSignOut}
-      onSaveTargetGoal={handleSaveTargetGoal}
-      leaderboardRefreshKey={leaderboardRefreshKey}
-    />
+    <>
+      <HomePage
+        exams={exams}
+        loading={loadingExams}
+        fromFallback={fromFallback}
+        user={user}
+        profile={profile}
+        isAdmin={isAdmin}
+        isSuperAdmin={isSuperAdmin}
+        onStartExam={handleStartExam}
+        onRefresh={loadExams}
+        onOpenAdmin={() => setView('admin')}
+        onSignOut={handleSignOut}
+        onSaveTargetGoal={handleSaveTargetGoal}
+        leaderboardRefreshKey={leaderboardRefreshKey}
+      />
+      <AchievementToast
+        achievements={unlockedToasts}
+        onDismiss={(id) =>
+          setUnlockedToasts((prev) => prev.filter((item) => item.id !== id))
+        }
+      />
+    </>
   );
 }
 

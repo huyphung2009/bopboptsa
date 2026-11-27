@@ -961,6 +961,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         isOpen={ranksModalOpen}
         user={user}
         profile={profile}
+        exams={exams}
+        refreshKey={leaderboardRefreshKey}
         onClose={() => setRanksModalOpen(false)}
         onOpenAuth={() => {
           setPendingExam(null);
