@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { deleteExam, fetchExams, upsertExam } from '../lib/examService';
-import { extractExamFromPdf } from '../lib/pdfExamImporter';
+import { DEFAULT_GEMINI_MODEL, extractExamFromPdf } from '../lib/pdfExamImporter';
 import {
   addAppAdmin,
   fetchAppAdmins,
@@ -53,6 +53,12 @@ interface AdminPageProps {
 
 const ADMIN_SESSION_KEY = 'bopbop-admin-unlocked';
 const GEMINI_KEY_STORAGE = 'parabol-gemini-api-key';
+const GEMINI_MODEL_STORAGE = 'parabol-gemini-model';
+const GEMINI_MODEL_PRESETS = [
+  'gemini-3.8-flash',
+  'gemini-3.8-pro',
+  'gemini-3.5-flash',
+];
 const ADMIN_EMAILS = (
   (import.meta.env.VITE_ADMIN_EMAILS as string | undefined) || ''
 )
@@ -163,6 +169,21 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [geminiApiKey, setGeminiApiKey] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem(GEMINI_KEY_STORAGE) ?? '';
+  });
+  const [geminiModel, setGeminiModel] = useState<string>(() => {
+    if (typeof window === 'undefined') return DEFAULT_GEMINI_MODEL;
+    const saved = localStorage.getItem(GEMINI_MODEL_STORAGE);
+    if (!saved || saved === 'gemini-2.5-flash') return DEFAULT_GEMINI_MODEL;
+    return saved;
+  });
+  const [customModelMode, setCustomModelMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem(GEMINI_MODEL_STORAGE);
+    return Boolean(
+      saved &&
+        saved !== 'gemini-2.5-flash' &&
+        !GEMINI_MODEL_PRESETS.includes(saved)
+    );
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -398,6 +419,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         file: pdfFile,
         apiKey: geminiApiKey,
         targetExamType: examType,
+        model: geminiModel,
       });
 
       setTitle(extracted.title ?? '');
@@ -874,14 +896,45 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </div>
                 </div>
 
-                {/* Target Exam Type */}
+                {/* Gemini Model Selector */}
                 <div>
                   <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf] mb-1.5">
-                    Kỳ thi mục tiêu
+                    Model Gemini AI
                   </label>
-                  <div className="w-full rounded-full border border-[#dc263e]/30 bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 px-4 py-2 text-xs sm:text-sm font-semibold text-[#b91c30] dark:text-[#fbbac3]">
-                    TSA (Đánh giá tư duy Bách Khoa)
-                  </div>
+                  <select
+                    value={customModelMode ? '__custom__' : geminiModel}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '__custom__') {
+                        setCustomModelMode(true);
+                      } else {
+                        setCustomModelMode(false);
+                        setGeminiModel(val);
+                        localStorage.setItem(GEMINI_MODEL_STORAGE, val);
+                      }
+                    }}
+                    className="w-full rounded-full border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-2 text-xs sm:text-sm font-mono font-semibold text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
+                  >
+                    {GEMINI_MODEL_PRESETS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                    <option value="__custom__">Tùy chỉnh model khác...</option>
+                  </select>
+                  {customModelMode && (
+                    <input
+                      type="text"
+                      value={geminiModel}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setGeminiModel(val);
+                        localStorage.setItem(GEMINI_MODEL_STORAGE, val);
+                      }}
+                      placeholder="VD: gemini-3.8-flash"
+                      className="mt-2 w-full rounded-full border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-1.5 text-xs font-mono text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:outline-none"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -948,7 +1001,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   <div className="flex items-center justify-between text-xs font-medium text-[#5e4249] dark:text-[#ebc9cf]">
                     <span>AI đang đọc công thức &amp; bóc tách câu hỏi từ PDF...</span>
                     <span className="font-mono text-crimson dark:text-[#fbbac3]">
-                      gemini-2.5-flash
+                      {geminiModel || DEFAULT_GEMINI_MODEL}
                     </span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-[#ffeff1] dark:bg-[#241219] overflow-hidden">

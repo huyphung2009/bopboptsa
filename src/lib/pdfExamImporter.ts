@@ -2,8 +2,12 @@ import type { Exam, ExamSection, ExamType, Passage, Question } from '../types/ex
 import { normalizeExamType } from '../utils/examTypes';
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
-const GEMINI_ENDPOINT =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+
+function buildGeminiEndpoint(model?: string): string {
+  const cleanModel = (model?.trim() || DEFAULT_GEMINI_MODEL).replace(/^models\//, '');
+  return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cleanModel)}:generateContent`;
+}
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -147,8 +151,9 @@ export async function extractExamFromPdf(params: {
   file: File;
   apiKey: string;
   targetExamType: ExamType;
+  model?: string;
 }): Promise<Partial<Exam>> {
-  const { file, apiKey, targetExamType } = params;
+  const { file, apiKey, targetExamType, model } = params;
 
   if (!apiKey.trim()) {
     throw new Error('Vui lòng nhập Gemini API Key.');
@@ -163,7 +168,7 @@ export async function extractExamFromPdf(params: {
   const base64Data = await fileToBase64(file);
 
   const response = await fetch(
-    `${GEMINI_ENDPOINT}?key=${encodeURIComponent(apiKey.trim())}`,
+    `${buildGeminiEndpoint(model)}?key=${encodeURIComponent(apiKey.trim())}`,
     {
       method: 'POST',
       headers: {
