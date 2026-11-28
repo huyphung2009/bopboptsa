@@ -2,6 +2,7 @@ export type ExamType = 'TSA' | 'HSA' | 'VACT' | 'THPTQG' | 'QDA' | 'VSAT' | 'BCA
 
 export type QuestionType =
   | 'single_choice'
+  | 'multiple_choice_multi'
   | 'true_false'
   | 'drag_drop'
   | 'short_answer';
@@ -76,6 +77,7 @@ export interface Exam {
 
 export type UserAnswerValue =
   | string // single_choice or short_answer
+  | string[] // multiple_choice_multi: selected option IDs
   | Record<string, boolean | null> // true_false: statementId -> true/false/null
   | Record<string, string>; // drag_drop: blankId -> word
 

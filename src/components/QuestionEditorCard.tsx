@@ -36,6 +36,11 @@ const TYPE_OPTIONS: { type: QuestionType; label: string; icon: React.ReactNode }
     icon: <CheckSquare className="w-3.5 h-3.5" />,
   },
   {
+    type: 'multiple_choice_multi',
+    label: 'Trắc nghiệm nhiều đáp án',
+    icon: <CheckSquare className="w-3.5 h-3.5" />,
+  },
+  {
     type: 'true_false',
     label: 'Đúng / Sai nhiều ý',
     icon: <ListChecks className="w-3.5 h-3.5" />,
@@ -104,6 +109,21 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
         { id: 'D', text: '' },
       ];
       base.correctOption = 'A';
+    } else if (newType === 'multiple_choice_multi') {
+      if (!base.options || base.options.length === 0) {
+        base.options = [
+          { id: 'A', text: '' },
+          { id: 'B', text: '' },
+          { id: 'C', text: '' },
+          { id: 'D', text: '' },
+        ];
+      }
+      base.correctAnswers =
+        base.correctAnswers && base.correctAnswers.length > 0
+          ? base.correctAnswers
+          : base.correctOption
+            ? [base.correctOption]
+            : ['A'];
     } else if (newType === 'true_false' && (!base.statements || base.statements.length === 0)) {
       base.statements = [
         { id: 's1', text: '', correct: true },
@@ -387,6 +407,87 @@ export const QuestionEditorCard: React.FC<QuestionEditorCardProps> = ({
                     placeholder={`Nội dung đáp án ${opt.id} (hỗ trợ $LaTeX$)...`}
                     className="flex-1 rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:ring-2 focus:ring-crimson/15 focus:outline-none"
                   />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 1b. Multiple Choice Multi (Checkbox) Fields */}
+        {question.type === 'multiple_choice_multi' && (
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <label className="block text-xs font-semibold text-[#5e4249] dark:text-[#ebc9cf]">
+                Các lựa chọn (bấm vào các ô A, B, C... để bật/tắt nhiều đáp án đúng)
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const opts = question.options ?? [];
+                  const nextChar = String.fromCharCode(65 + opts.length);
+                  onChange({
+                    ...question,
+                    options: [...opts, { id: nextChar, text: '' }],
+                  });
+                }}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-crimson dark:text-[#ef6c7e] hover:underline cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Thêm phương án
+              </button>
+            </div>
+            {(question.options ?? []).map((opt, idx) => {
+              const correctList = question.correctAnswers ?? [];
+              const isCorrect = correctList.includes(opt.id);
+              return (
+                <div key={opt.id} className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextCorrect = isCorrect
+                        ? correctList.filter((id) => id !== opt.id)
+                        : [...correctList, opt.id];
+                      onChange({ ...question, correctAnswers: nextCorrect });
+                    }}
+                    className={`w-8 h-8 rounded-lg border text-xs font-mono font-bold shrink-0 transition-colors cursor-pointer flex items-center justify-center ${
+                      isCorrect
+                        ? 'bg-crimson text-white border-crimson shadow-xs'
+                        : 'bg-[#fff5f6] dark:bg-[#2a141c] text-[#5e4249] dark:text-[#fbbac3] border-[var(--line)] hover:border-crimson/50'
+                    }`}
+                    title="Bật/tắt đáp án đúng"
+                  >
+                    {isCorrect ? `☑ ${opt.id}` : opt.id}
+                  </button>
+                  <input
+                    type="text"
+                    value={opt.text}
+                    onChange={(e) => {
+                      const nextOpts = [...(question.options ?? [])];
+                      nextOpts[idx] = { ...opt, text: e.target.value };
+                      onChange({ ...question, options: nextOpts });
+                    }}
+                    placeholder={`Nội dung đáp án ${opt.id} (hỗ trợ $LaTeX$)...`}
+                    className="flex-1 rounded-xl border border-[var(--line)] bg-white dark:bg-[#190c11] px-3.5 py-2 text-sm text-[#2a161b] dark:text-[#fff2f4] focus:border-crimson focus:ring-2 focus:ring-crimson/15 focus:outline-none"
+                  />
+                  {(question.options ?? []).length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const filtered = (question.options ?? []).filter(
+                          (_, i) => i !== idx
+                        );
+                        onChange({
+                          ...question,
+                          options: filtered,
+                          correctAnswers: correctList.filter((id) => id !== opt.id),
+                        });
+                      }}
+                      className="p-2 text-[#876870] hover:text-rose-600 cursor-pointer"
+                      title="Xóa phương án"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })}

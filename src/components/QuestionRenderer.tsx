@@ -1,4 +1,4 @@
-import { CheckCircle2, GripVertical, XCircle } from 'lucide-react';
+import { Check, CheckCircle2, GripVertical, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import type { Question, UserAnswerValue } from '../types/exam';
 import { MathText } from './MathText';
@@ -76,6 +76,106 @@ export const QuestionRenderer: React.FC<QuestionRendererProps> = ({
                 )}
                 {readOnly && isSelected && !isCorrect && (
                   <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-1" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // 1b. Trắc nghiệm nhiều đáp án (Checkbox)
+  if (question.type === 'multiple_choice_multi') {
+    const selectedIds = Array.isArray(answer)
+      ? answer.map((s) => String(s).trim().toUpperCase())
+      : [];
+    const expectedIds = (question.correctAnswers ?? []).map((s) =>
+      s.trim().toUpperCase()
+    );
+
+    const toggleOption = (optId: string) => {
+      if (readOnly) return;
+      const upper = optId.trim().toUpperCase();
+      const next = selectedIds.includes(upper)
+        ? selectedIds.filter((id) => id !== upper)
+        : [...selectedIds, upper];
+      onChange?.(next);
+    };
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ffeff1] dark:bg-[#2e151e] border border-crimson/25 px-3 py-1 text-[11px] font-semibold text-crimson dark:text-[#fbbac3] mb-2.5">
+            ☑ Chọn nhiều đáp án đúng
+          </span>
+          <div className="text-[#2a161b] dark:text-[#fff2f4] leading-relaxed font-medium">
+            <MathText text={question.prompt} />
+          </div>
+        </div>
+
+        <div className="space-y-2.5">
+          {(question.options ?? []).map((opt) => {
+            const upperId = opt.id.trim().toUpperCase();
+            const isSelected = selectedIds.includes(upperId);
+            const isCorrect = expectedIds.includes(upperId);
+
+            let cardStyle =
+              'border-[var(--line)] bg-white/90 dark:bg-[#1d0f15]/80 hover:border-[#ef6c7e] dark:hover:border-[#ef6c7e]/60 hover:bg-[#fff5f6]/75 dark:hover:bg-[#2a141c]/80';
+
+            if (readOnly) {
+              if (isSelected && isCorrect) {
+                cardStyle =
+                  'border-emerald-500/80 bg-emerald-50/75 dark:bg-emerald-950/35';
+              } else if (isSelected && !isCorrect) {
+                cardStyle = 'border-rose-500/80 bg-rose-50/75 dark:bg-rose-950/35';
+              } else if (!isSelected && isCorrect) {
+                cardStyle =
+                  'border-dashed border-2 border-amber-500/90 bg-amber-50/70 dark:bg-amber-950/30';
+              } else {
+                cardStyle =
+                  'border-[var(--line)] bg-[#fff9fa]/50 dark:bg-[#1b0d13]/40 opacity-75';
+              }
+            } else if (isSelected) {
+              cardStyle =
+                'border-crimson bg-[#ffeff1]/80 dark:bg-[#dc263e]/20 ring-1 ring-crimson/35 shadow-[0_10px_24px_-16px_rgba(220,38,62,0.4)]';
+            }
+
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={readOnly}
+                onClick={() => toggleOption(opt.id)}
+                className={`w-full text-left rounded-2xl border p-3.5 transition-all flex items-start gap-3 ${
+                  readOnly ? '' : 'cursor-pointer'
+                } ${cardStyle}`}
+              >
+                <span
+                  className={`shrink-0 w-6 h-6 mt-0.5 rounded-md border flex items-center justify-center transition-colors ${
+                    isSelected
+                      ? 'bg-crimson text-white border-crimson'
+                      : 'bg-white dark:bg-[#2a141c] border-[var(--line)]'
+                  }`}
+                >
+                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                </span>
+                <span className="shrink-0 font-mono text-xs font-bold text-crimson pt-1">
+                  {opt.id}.
+                </span>
+                <span className="flex-1 text-sm sm:text-[15px] text-[#2a161b] dark:text-[#fff2f4] pt-0.5 leading-relaxed">
+                  <MathText text={opt.text} />
+                </span>
+                {readOnly && isSelected && isCorrect && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-1" />
+                )}
+                {readOnly && isSelected && !isCorrect && (
+                  <XCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-1" />
+                )}
+                {readOnly && !isSelected && isCorrect && (
+                  <span className="shrink-0 rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-800 mt-0.5">
+                    Bỏ sót
+                  </span>
                 )}
               </button>
             );

@@ -28,6 +28,8 @@ export function isQuestionAnswered(
   switch (question.type) {
     case 'single_choice':
       return typeof answer === 'string' && answer.trim().length > 0;
+    case 'multiple_choice_multi':
+      return Array.isArray(answer) && answer.length > 0;
     case 'short_answer':
       return typeof answer === 'string' && answer.trim().length > 0;
     case 'true_false': {
@@ -68,6 +70,31 @@ export function gradeQuestion(
   switch (question.type) {
     case 'single_choice': {
       if (typeof answer === 'string' && answer === question.correctOption) {
+        ratio = 1;
+      }
+      break;
+    }
+
+    case 'multiple_choice_multi': {
+      const expected = Array.from(
+        new Set(
+          (question.correctAnswers ?? [])
+            .map((s) => s.trim().toUpperCase())
+            .filter(Boolean)
+        )
+      );
+      const selected = Array.isArray(answer)
+        ? Array.from(
+            new Set(
+              answer.map((s) => String(s).trim().toUpperCase()).filter(Boolean)
+            )
+          )
+        : [];
+      if (
+        expected.length > 0 &&
+        selected.length === expected.length &&
+        expected.every((id) => selected.includes(id))
+      ) {
         ratio = 1;
       }
       break;

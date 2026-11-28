@@ -37,8 +37,9 @@ YÊU CẦU BẮT BUỘC:
    - Dùng $$...$$ cho công thức đứng riêng dòng (block).
    - Escape đúng dấu gạch chéo ngược trong JSON (ví dụ: "\\\\frac{a}{b}", "\\\\int_0^1", "\\\\sqrt{x}").
 3. Tự động tách các đoạn văn đọc hiểu hoặc ngữ liệu khoa học dùng chung vào mảng "passages" với id "p1", "p2",... và gắn "passageId" tương ứng cho các câu hỏi liên quan. Câu hỏi độc lập hoặc câu Toán không có đoạn văn thì bỏ trống hoặc không gắn "passageId".
-4. Nhận diện chính xác 4 dạng câu hỏi vào trường "type":
+4. Nhận diện chính xác 5 dạng câu hỏi vào trường "type":
    - "single_choice": Trắc nghiệm 1 đáp án (A, B, C, D). Cần có "options": [{"id":"A","text":"..."}, ...] và "correctOption": "A".
+   - "multiple_choice_multi": Trắc nghiệm nhiều đáp án đúng (Checkbox). Nếu câu hỏi có các cụm từ như "Chọn nhiều đáp án đúng", "Chọn các đáp án đúng", "Chọn 2 đáp án..." hoặc bảng đáp án có từ 2 chữ cái trở lên (VD: "A, C"), hãy gán type là "multiple_choice_multi", kèm "options": [{"id":"A","text":"..."}, ...] và "correctAnswers": ["A", "C"].
    - "true_false": Câu Đúng/Sai nhiều ý. Cần có "statements": [{"id":"s1","text":"...","correct":true}, ...].
    - "drag_drop": Điền từ / Kéo thả chỗ trống. Trong "prompt" đặt placeholder dạng [[b1]], [[b2]]...; cần có "blanks": [{"id":"b1","correctWord":"..."}] và "wordBank": ["...", ...] (bao gồm cả từ đúng và từ nhiễu nếu có).
    - "short_answer": Trả lời ngắn / Điền số. Cần có "correctAnswers": ["..."].
@@ -107,6 +108,7 @@ function sanitizeExtractedExam(raw: any, targetExamType: ExamType): Partial<Exam
     ? raw.questions.map((q: Partial<Question>, idx: number) => {
         const type =
           q.type === 'single_choice' ||
+          q.type === 'multiple_choice_multi' ||
           q.type === 'true_false' ||
           q.type === 'drag_drop' ||
           q.type === 'short_answer'

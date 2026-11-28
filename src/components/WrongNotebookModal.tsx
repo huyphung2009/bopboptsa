@@ -30,6 +30,9 @@ function formatUserAnswer(q: Question, ans: UserAnswerValue | undefined): string
     const opt = q.options?.find((o) => o.id === ans);
     return opt ? `${opt.id}. ${opt.text}` : ans;
   }
+  if (Array.isArray(ans)) {
+    return ans.length > 0 ? ans.join(', ') : 'Chưa trả lời';
+  }
   if (typeof ans === 'string') {
     return ans.trim() || 'Chưa trả lời';
   }
@@ -53,6 +56,8 @@ function formatCorrectAnswer(q: Question): string {
       const opt = q.options?.find((o) => o.id === q.correctOption);
       return opt ? `${opt.id}. ${opt.text}` : q.correctOption || '';
     }
+    case 'multiple_choice_multi':
+      return (q.correctAnswers ?? []).join(', ');
     case 'short_answer':
       return (q.correctAnswers ?? []).join(' / ');
     case 'true_false':

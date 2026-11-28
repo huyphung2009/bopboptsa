@@ -187,7 +187,9 @@ export const BountyDetailModal: React.FC<BountyDetailModalProps> = ({
               <MathText text={item.question.prompt} />
             </div>
 
-            {item.question.type === 'single_choice' && item.question.options && (
+            {(item.question.type === 'single_choice' ||
+              item.question.type === 'multiple_choice_multi') &&
+              item.question.options && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
                 {item.question.options.map((opt) => (
                   <div

@@ -81,6 +81,7 @@ function readSavedSnapshot(key: string): SavedExamSnapshot | null {
 
 const QUESTION_TYPE_LABEL: Record<string, string> = {
   single_choice: 'Trắc nghiệm 1 đáp án',
+  multiple_choice_multi: 'Trắc nghiệm nhiều đáp án',
   true_false: 'Đúng / Sai nhiều ý',
   drag_drop: 'Kéo thả / Điền từ',
   short_answer: 'Điền số / Trả lời ngắn',
