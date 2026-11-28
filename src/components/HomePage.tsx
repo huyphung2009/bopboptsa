@@ -5,6 +5,7 @@ import {
   BookOpen,
   Check,
   Clock,
+  Compass,
   FileText,
   Flame,
   Layers,
@@ -28,6 +29,7 @@ import {
   normalizeExamType,
   type ExamTabFilter,
 } from '../utils/examTypes';
+import { AdmissionCompareModal } from './AdmissionCompareModal';
 import { AuthModal } from './AuthModal';
 import { CloudBackdrop } from './CloudBackdrop';
 import { ExamModeModal } from './ExamModeModal';
@@ -84,6 +86,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [pendingExam, setPendingExam] = useState<Exam | null>(null);
   const [modeSelectExam, setModeSelectExam] = useState<Exam | null>(null);
   const [legalTab, setLegalTab] = useState<LegalTab | null>(null);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
 
   const [selectedExamType, setSelectedExamType] = useState<ExamTabFilter>('ALL');
   const [selectedSection, setSelectedSection] = useState<string>('ALL');
@@ -233,6 +236,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               >
                 <Flame className="w-3.5 h-3.5 text-crimson" />
                 Truy nã câu khó
+              </button>
+              <button
+                type="button"
+                onClick={() => setCompareModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13.5px] text-[#5e4249] hover:bg-[#fff5f6] hover:text-crimson transition-all cursor-pointer"
+              >
+                <Compass className="w-3.5 h-3.5 text-crimson" />
+                So kè cửa đỗ
               </button>
               <button
                 type="button"
@@ -479,6 +490,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               exams={exams}
               refreshKey={leaderboardRefreshKey}
               onOpenModal={() => setTargetGoalOpen(true)}
+              onOpenCompare={() => setCompareModalOpen(true)}
             />
           </div>
         )}
@@ -1058,6 +1070,13 @@ export const HomePage: React.FC<HomePageProps> = ({
         isOpen={legalTab !== null}
         initialTab={legalTab ?? 'terms'}
         onClose={() => setLegalTab(null)}
+      />
+
+      <AdmissionCompareModal
+        isOpen={compareModalOpen}
+        userId={user?.id}
+        exams={exams}
+        onClose={() => setCompareModalOpen(false)}
       />
     </div>
   );

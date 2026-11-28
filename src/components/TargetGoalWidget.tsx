@@ -19,6 +19,7 @@ interface TargetGoalWidgetProps {
   exams: Exam[];
   refreshKey?: number;
   onOpenModal: () => void;
+  onOpenCompare?: () => void;
 }
 
 function computeDaysLeft(dateStr?: string | null): number {
@@ -40,6 +41,7 @@ export const TargetGoalWidget: React.FC<TargetGoalWidgetProps> = ({
   exams,
   refreshKey = 0,
   onOpenModal,
+  onOpenCompare,
 }) => {
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
 
@@ -236,6 +238,16 @@ export const TargetGoalWidget: React.FC<TargetGoalWidgetProps> = ({
               </span>
             </div>
           </div>
+
+          {onOpenCompare && (
+            <button
+              type="button"
+              onClick={onOpenCompare}
+              className="btn btn-crimson btn-sm shrink-0"
+            >
+              🎯 So kè cửa đỗ
+            </button>
+          )}
 
           <button
             type="button"

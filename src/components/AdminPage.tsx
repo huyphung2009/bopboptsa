@@ -37,6 +37,7 @@ import {
 } from '../lib/profileService';
 import type { Exam, ExamSection, ExamType, Passage, Question } from '../types/exam';
 import { EXAM_TYPES, getAdminSectionsForType, getExamTypeMeta, normalizeExamType } from '../utils/examTypes';
+import { BenchmarkAdminTab } from './BenchmarkAdminTab';
 import { CloudBackdrop } from './CloudBackdrop';
 import { Logo } from './Logo';
 import { MathText } from './MathText';
@@ -116,8 +117,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   }, [isEmailAdmin]);
 
-  // Tabs: 'repo' (Kho đề) | 'editor' (Trình soạn thảo) | 'admins' (Super Admin)
-  const [activeTab, setActiveTab] = useState<'repo' | 'editor' | 'admins'>('repo');
+  // Tabs: 'repo' (Kho đề) | 'editor' (Trình soạn thảo) | 'benchmarks' (Điểm chuẩn) | 'admins' (Super Admin)
+  const [activeTab, setActiveTab] = useState<'repo' | 'editor' | 'benchmarks' | 'admins'>('repo');
 
   // Super Admin state
   const [adminList, setAdminList] = useState<AppAdminRecord[]>([]);
@@ -553,6 +554,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <Edit3 className="w-3.5 h-3.5" />
                 {editingId ? 'Sửa đề' : 'Tạo đề mới'}
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('benchmarks')}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                  activeTab === 'benchmarks'
+                    ? 'bg-crimson text-white shadow-xs'
+                    : 'text-[#5e4249] dark:text-[#ebc9cf] hover:text-crimson'
+                }`}
+              >
+                Điểm chuẩn
+              </button>
               {isSuperAdmin && (
                 <button
                   type="button"
@@ -582,7 +594,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         {/* Mobile Tabs */}
         <div
           className={`sm:hidden grid border-t border-[var(--line)] bg-white/90 dark:bg-[#190c11] ${
-            isSuperAdmin ? 'grid-cols-3' : 'grid-cols-2'
+            isSuperAdmin ? 'grid-cols-4' : 'grid-cols-3'
           }`}
         >
           <button
@@ -606,6 +618,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             }`}
           >
             {editingId ? 'Sửa đề' : 'Tạo đề mới'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('benchmarks')}
+            className={`py-2.5 text-xs font-semibold border-b-2 ${
+              activeTab === 'benchmarks'
+                ? 'border-crimson text-crimson dark:text-[#fbbac3]'
+                : 'border-transparent text-[#876870]'
+            }`}
+          >
+            Điểm chuẩn
           </button>
           {isSuperAdmin && (
             <button
@@ -737,6 +760,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             </div>
           </div>
         )}
+
+        {/* TAB 2.5: ADMISSION BENCHMARKS */}
+        {activeTab === 'benchmarks' && <BenchmarkAdminTab />}
 
         {/* TAB 2: VISUAL EXAM BUILDER */}
         {activeTab === 'editor' && (
