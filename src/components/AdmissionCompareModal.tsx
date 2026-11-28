@@ -147,11 +147,21 @@ export const AdmissionCompareModal: React.FC<AdmissionCompareModalProps> = ({
 
   const selectedBenchmark = useMemo(
     () =>
-      benchmarks.find((b) => b.id === selectedId) ??
+      filteredBenchmarks.find((b) => b.id === selectedId) ??
       filteredBenchmarks[0] ??
       null,
-    [benchmarks, filteredBenchmarks, selectedId]
+    [filteredBenchmarks, selectedId]
   );
+
+  useEffect(() => {
+    if (filteredBenchmarks.length === 0) {
+      if (selectedId !== '') setSelectedId('');
+      return;
+    }
+    if (!filteredBenchmarks.some((b) => b.id === selectedId)) {
+      setSelectedId(filteredBenchmarks[0].id);
+    }
+  }, [filteredBenchmarks, selectedId]);
 
   const comparisons = useMemo(() => {
     if (!selectedBenchmark) return [];
@@ -298,11 +308,15 @@ export const AdmissionCompareModal: React.FC<AdmissionCompareModalProps> = ({
                     onChange={(e) => setSelectedId(e.target.value)}
                     className="w-full rounded-full border border-[var(--line)] bg-white px-4 py-2 text-xs sm:text-sm font-medium text-[#2a161b] focus:border-crimson focus:outline-none"
                   >
-                    {filteredBenchmarks.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.university_name} — {b.major_code} ({b.major_name}) [{b.year}]
-                      </option>
-                    ))}
+                    {filteredBenchmarks.length === 0 ? (
+                      <option value="">Không tìm thấy ngành phù hợp</option>
+                    ) : (
+                      filteredBenchmarks.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.university_name} — {b.major_code} ({b.major_name}) [{b.year}]
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
               </section>
@@ -349,7 +363,7 @@ export const AdmissionCompareModal: React.FC<AdmissionCompareModalProps> = ({
                                   [cfg.key]: Number(e.target.value),
                                 }))
                               }
-                              className="flex-1 accent-crimson cursor-pointer"
+                              className="flex-1 h-1.5 rounded-full bg-crimson/15 accent-crimson cursor-pointer outline-none focus:outline-none focus:ring-0"
                             />
                             <input
                               type="number"
