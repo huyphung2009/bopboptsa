@@ -173,7 +173,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [geminiModel, setGeminiModel] = useState<string>(() => {
     if (typeof window === 'undefined') return DEFAULT_GEMINI_MODEL;
     const saved = localStorage.getItem(GEMINI_MODEL_STORAGE);
-    if (!saved || saved === 'gemini-2.5-flash') return DEFAULT_GEMINI_MODEL;
+    if (!saved || saved.includes('2.5-flash')) return DEFAULT_GEMINI_MODEL;
     return saved;
   });
   const [customModelMode, setCustomModelMode] = useState<boolean>(() => {
@@ -181,7 +181,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     const saved = localStorage.getItem(GEMINI_MODEL_STORAGE);
     return Boolean(
       saved &&
-        saved !== 'gemini-2.5-flash' &&
+        !saved.includes('2.5-flash') &&
         !GEMINI_MODEL_PRESETS.includes(saved)
     );
   });
