@@ -1075,8 +1075,15 @@ export const HomePage: React.FC<HomePageProps> = ({
       <AdmissionCompareModal
         isOpen={compareModalOpen}
         userId={user?.id}
+        profile={profile}
         exams={exams}
         onClose={() => setCompareModalOpen(false)}
+        onSetAsGoal={onSaveTargetGoal}
+        onRequireAuth={(notice) => {
+          setCompareModalOpen(false);
+          setAuthNotice(notice);
+          setAuthModalOpen(true);
+        }}
       />
     </div>
   );

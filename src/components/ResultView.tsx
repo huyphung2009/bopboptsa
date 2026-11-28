@@ -11,12 +11,13 @@ import {
   Trophy,
   XCircle,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   fetchTopCommunitySolutionsMap,
   type BountySolutionRecord,
 } from '../lib/bountyService';
 import type { Exam, ExamAttemptResult } from '../types/exam';
+import { analyzeTimeBlackHoles, formatShortMinSec } from '../utils/blackHole';
 import { getRankByXp } from '../utils/ranks';
 import { formatDuration } from '../utils/scoring';
 import { CloudBackdrop } from './CloudBackdrop';
@@ -78,6 +79,14 @@ export const ResultView: React.FC<ResultViewProps> = ({
   const newRank = xpAward ? getRankByXp(xpAward.newXp) : null;
   const leveledUp =
     Boolean(oldRank && newRank && newRank.level > oldRank.level && !xpAward?.isGuest);
+
+  const blackHoleAnalysis = useMemo(
+    () => analyzeTimeBlackHoles(exam, result),
+    [exam, result]
+  );
+  const hasTrackedTimes = Boolean(
+    result.questionTimes && Object.keys(result.questionTimes).length > 0
+  );
 
   return (
     <div className="relative min-h-screen bg-white dark:bg-[#13090d] text-[#2a161b] dark:text-[#fff2f4] pb-16 overflow-x-hidden">
@@ -285,6 +294,59 @@ export const ResultView: React.FC<ResultViewProps> = ({
             </section>
           )}
 
+          {/* Time Black Hole Detector Alert Card */}
+          {hasTrackedTimes && (
+            <section
+              className={`rounded-[24px] border p-5 transition-all ${
+                blackHoleAnalysis.items.length > 0
+                  ? 'border-rose-300 bg-rose-50/75 dark:border-rose-800 dark:bg-rose-950/35'
+                  : 'border-emerald-200 bg-emerald-50/75 dark:border-emerald-800 dark:bg-emerald-950/35'
+              }`}
+            >
+              {blackHoleAnalysis.items.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-lg leading-none mt-0.5">🕳️</span>
+                    <div className="space-y-1">
+                      <h2 className="text-sm font-bold text-rose-800 dark:text-rose-200">
+                        Phát hiện {blackHoleAnalysis.items.length} &apos;Hố đen thời gian&apos; — Bạn đã tiêu tốn tổng cộng{' '}
+                        {Math.floor(blackHoleAnalysis.totalWastedSeconds / 60)} phút{' '}
+                        {blackHoleAnalysis.totalWastedSeconds % 60} giây cho{' '}
+                        {blackHoleAnalysis.items.length} câu này nhưng vẫn sai
+                      </h2>
+                      <p className="text-xs text-rose-700/85 dark:text-rose-300/85">
+                        Bấm vào từng câu bên dưới để cuộn thẳng tới lời giải chi tiết:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {blackHoleAnalysis.items.map((bh) => (
+                      <button
+                        key={bh.questionId}
+                        type="button"
+                        onClick={() => {
+                          document
+                            .getElementById(`result-question-${bh.questionId}`)
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-rose-300 bg-white px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+                      >
+                        <span>
+                          Câu {bh.questionNumber} ({formatShortMinSec(bh.secondsSpent)})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                  <span>⚡ Phân bổ thời gian chuẩn — Không dính Hố đen nào!</span>
+                </div>
+              )}
+            </section>
+          )}
+
           {/* Detailed Review */}
           <section className="space-y-4">
             <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#876870] dark:text-[#b88c95]">
@@ -311,14 +373,21 @@ export const ResultView: React.FC<ResultViewProps> = ({
                 .filter((q) => Boolean(result.questionResults[q.id]))
                 .map((q, idx) => {
                 const qRes = result.questionResults[q.id];
+                const spentSeconds = Number(result.questionTimes?.[q.id] ?? 0);
+                const isBlackHole = blackHoleAnalysis.blackHoleIds.has(q.id);
                 const passage = q.passageId
                   ? exam.passages.find((p) => p.id === q.passageId)
                   : undefined;
 
                 return (
                   <article
+                    id={`result-question-${q.id}`}
                     key={q.id}
-                    className="glass-card rounded-[24px] p-5 sm:p-6 space-y-4"
+                    className={`glass-card rounded-[24px] p-5 sm:p-6 space-y-4 scroll-mt-20 ${
+                      isBlackHole
+                        ? '!border-rose-300 dark:!border-rose-800 bg-rose-50/35 dark:bg-rose-950/20'
+                        : ''
+                    }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--line)]">
                       <div className="flex items-center gap-2">
@@ -330,7 +399,18 @@ export const ResultView: React.FC<ResultViewProps> = ({
                         </span>
                       </div>
 
-                      {qRes.isFullCorrect ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {isBlackHole ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 text-white px-2.5 py-0.5 text-[11px] font-bold">
+                            🕳️ Hố đen · {formatShortMinSec(spentSeconds)}
+                          </span>
+                        ) : hasTrackedTimes ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[var(--line)] bg-white/80 px-2.5 py-0.5 text-[11px] font-mono text-[#876870]">
+                            ⏱ {formatShortMinSec(spentSeconds)}
+                          </span>
+                        ) : null}
+
+                        {qRes.isFullCorrect ? (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Đúng ({qRes.earnedPoints}/{qRes.maxPoints})
@@ -346,6 +426,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                           Sai (0/{qRes.maxPoints})
                         </span>
                       )}
+                      </div>
                     </div>
 
                     {passage && (

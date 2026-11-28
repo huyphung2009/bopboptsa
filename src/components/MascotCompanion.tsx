@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 interface MascotCompanionProps {
   view: 'home' | 'exam' | 'result' | 'admin' | 'bounty';
   latestScore?: number | null;
+  blackHoleCount?: number;
   isWrongBookOpen?: boolean;
   onOpenWrongBook: () => void;
   onOpenOmikuji: () => void;
@@ -52,6 +53,7 @@ function pickHomeDialogue(exclude?: string): string {
 export const MascotCompanion: React.FC<MascotCompanionProps> = ({
   view,
   latestScore = null,
+  blackHoleCount = 0,
   isWrongBookOpen = false,
   onOpenWrongBook,
   onOpenOmikuji,
@@ -98,7 +100,11 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
 
     if (view === 'result' && latestScore !== null) {
       setBubbleVisible(true);
-      if (latestScore >= 80) {
+      if (blackHoleCount >= 2) {
+        setDialogue(
+          'Sa lầy vào mấy câu Hố đen mất bao nhiêu phút rồi kìa! Lần sau quá 2 phút chưa ra thì cắm cờ bỏ qua ngay nhé!'
+        );
+      } else if (latestScore >= 80) {
         setDialogue(
           'Tư duy đỉnh thật sự! Suất IT-E10 Bách khoa chắc chắn có tên cậu! 🎉'
         );
@@ -116,7 +122,7 @@ export const MascotCompanion: React.FC<MascotCompanionProps> = ({
 
     setBubbleVisible(true);
     setDialogue(pickHomeDialogue());
-  }, [view, latestScore, isWrongBookOpen]);
+  }, [view, latestScore, blackHoleCount, isWrongBookOpen]);
 
   // 60-second idle detection on Home / Dashboard
   useEffect(() => {

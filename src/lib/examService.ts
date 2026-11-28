@@ -142,16 +142,28 @@ export async function submitAttempt(attempt: AttemptRecord): Promise<{
     violation_count: Number(attempt.violation_count ?? 0),
     is_flagged: Boolean(attempt.is_flagged),
     user_answers: attempt.user_answers ?? {},
+    ...(attempt.question_times ? { question_times: attempt.question_times } : {}),
     user_id: attempt.user_id ?? null,
     avatar_url: attempt.avatar_url ?? null,
   };
 
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('attempts')
       .insert([payload])
       .select()
       .single();
+
+    if (error && error.message?.includes('question_times')) {
+      const { question_times: _omit, ...fallbackPayload } = payload;
+      const retry = await supabase
+        .from('attempts')
+        .insert([fallbackPayload])
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       console.error('[submitAttempt] Supabase error:', error, 'Payload:', payload);

@@ -25,6 +25,7 @@ import {
 import { supabase } from './lib/supabase';
 import type { Exam, ExamAttemptResult, UserAnswers } from './types/exam';
 import type { AchievementDefinition } from './utils/achievements';
+import { analyzeTimeBlackHoles } from './utils/blackHole';
 import { calculateEarnedXp } from './utils/ranks';
 import { gradeExam } from './utils/scoring';
 
@@ -178,7 +179,8 @@ export function App() {
     answers: UserAnswers,
     timeSpentSeconds: number,
     targetSectionId?: string,
-    proctoring?: { violationCount: number; isFlagged: boolean }
+    proctoring?: { violationCount: number; isFlagged: boolean },
+    questionTimes?: Record<string, number>
   ) => {
     if (!activeExam) return;
     const resolvedName =
@@ -195,6 +197,7 @@ export function App() {
     );
     const result: ExamAttemptResult = {
       ...graded,
+      questionTimes,
       violationCount,
       isFlagged,
     };
@@ -249,6 +252,7 @@ export function App() {
       violation_count: violationCount,
       is_flagged: isFlagged,
       user_answers: answers,
+      question_times: questionTimes,
       user_id: user?.id ?? null,
       avatar_url: avatarUrl,
     });
@@ -445,6 +449,7 @@ export function App() {
         <MascotCompanion
           view="result"
           latestScore={attemptResult.score100}
+          blackHoleCount={analyzeTimeBlackHoles(activeExam, attemptResult).items.length}
           isWrongBookOpen={wrongBookOpen}
           onOpenWrongBook={() => setWrongBookOpen(true)}
           onOpenOmikuji={() => setOmikujiOpen(true)}

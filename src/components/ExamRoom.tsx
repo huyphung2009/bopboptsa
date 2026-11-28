@@ -42,7 +42,8 @@ interface ExamRoomProps {
     answers: UserAnswers,
     timeSpentSeconds: number,
     targetSectionId?: string,
-    proctoring?: { violationCount: number; isFlagged: boolean }
+    proctoring?: { violationCount: number; isFlagged: boolean },
+    questionTimes?: Record<string, number>
   ) => void;
   onExit: () => void;
 }
@@ -55,6 +56,7 @@ interface SavedExamSnapshot {
   activeSectionIdx: number;
   accumulatedSeconds: number;
   currentIndex: number;
+  questionTimes?: Record<string, number>;
 }
 
 function readSavedSnapshot(key: string): SavedExamSnapshot | null {
@@ -174,6 +176,10 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   const answersRef = useRef(answers);
   const remainingRef = useRef(remainingSeconds);
   const accumulatedRef = useRef(accumulatedSeconds);
+  const questionTimesRef = useRef<Record<string, number>>(
+    initialSnapshot?.questionTimes ?? {}
+  );
+  const currentQuestionIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     answersRef.current = answers;
@@ -193,6 +199,9 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   const splitContainerRef = useRef<HTMLDivElement | null>(null);
 
   const currentQuestion = sectionQuestions[currentIndex];
+  useEffect(() => {
+    currentQuestionIdRef.current = currentQuestion?.id;
+  }, [currentQuestion?.id]);
   const currentPassage = useMemo(() => {
     if (!currentQuestion?.passageId) return null;
     return exam.passages.find((p) => p.id === currentQuestion.passageId) ?? null;
@@ -235,10 +244,16 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
         if (document.fullscreenElement) {
           document.exitFullscreen?.().catch(() => {});
         }
-        onSubmit(answers, nextTotalSpent, targetSectionId, {
-          violationCount: violationCountRef.current,
-          isFlagged: violationCountRef.current > 3,
-        });
+        onSubmit(
+          answers,
+          nextTotalSpent,
+          targetSectionId,
+          {
+            violationCount: violationCountRef.current,
+            isFlagged: violationCountRef.current > 3,
+          },
+          { ...questionTimesRef.current }
+        );
       } else {
         setIntermissionSeconds(5);
       }
@@ -270,6 +285,7 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
         activeSectionIdx,
         accumulatedSeconds,
         currentIndex,
+        questionTimes: questionTimesRef.current,
       };
       localStorage.setItem(autosaveKey, JSON.stringify(payload));
     } catch {
@@ -291,6 +307,11 @@ export const ExamRoom: React.FC<ExamRoomProps> = ({
   useEffect(() => {
     if (intermissionSeconds !== null || isSubmitting) return;
     const timer = window.setInterval(() => {
+      const activeQId = currentQuestionIdRef.current;
+      if (activeQId) {
+        questionTimesRef.current[activeQId] =
+          (questionTimesRef.current[activeQId] ?? 0) + 1;
+      }
       if (isPractice) {
         setElapsedSeconds((prev) => prev + 1);
       } else {

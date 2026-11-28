@@ -120,6 +120,7 @@ export interface ExamAttemptResult {
   isFlagged?: boolean;
   sectionResults?: SectionResultSummary[];
   questionResults: Record<string, QuestionResult>;
+  questionTimes?: Record<string, number>;
   answers: UserAnswers;
   submittedAt: string;
 }
@@ -140,6 +141,7 @@ export interface AttemptRecord {
   status?: string;
   section_scores?: SectionResultSummary[] | null;
   user_answers?: UserAnswers | null;
+  question_times?: Record<string, number> | null;
   user_id?: string | null;
   avatar_url?: string | null;
   created_at?: string;
